@@ -10,7 +10,7 @@ import edu.buffalo.cse.irf14.document.FieldNames;
  * It has two purposes:
  * 	- Either be implemented as a single {@link TokenFilter} instance
  *  - Or implemented as a TokenFilter chain that handles {@link FieldNames} specific processing
- *  @author nikhillo, sghodke, amitpuru
+ *  @author nikhillo
  */
 public interface Analyzer {
 	/**
