@@ -17,6 +17,9 @@ public class TokenStream implements Iterator<Token>{
 	
 	List<Token> ts;
 	int pointer;
+	// flag to verify if next item is fetched by the next() method
+	// used for getCurrent() and remove() methods
+	boolean nextFetched;
 	
 	/**
 	 * Default constructor
@@ -25,6 +28,7 @@ public class TokenStream implements Iterator<Token>{
 
 		ts = new ArrayList<Token>();
 		pointer = -1;
+		nextFetched = false;
 	}
 	
 	/**
@@ -54,10 +58,12 @@ public class TokenStream implements Iterator<Token>{
 	public Token next() {
 		
 		if(pointer > -1 && pointer < ts.size()) {
+			nextFetched = true;
 			return ts.get(pointer++);
 		}
 		
 		// return null since the token stream is empty or pointer is beyond last element
+		nextFetched = false;
 		return null;
 	}
 	
@@ -70,12 +76,16 @@ public class TokenStream implements Iterator<Token>{
 	@Override
 	public void remove() {
 
+		if(!nextFetched) {
+			return;
+		}
 		pointer--;
 		if(pointer < 0 || pointer >= ts.size()) {
 			pointer++;
 			return;
 		}
 		ts.remove(pointer);
+		nextFetched = false;
 	}
 	
 	/**
@@ -101,7 +111,19 @@ public class TokenStream implements Iterator<Token>{
 	 * @param stream : The stream to be appended
 	 */
 	public void append(TokenStream stream) {
-		//TODO : YOU MUST IMPLEMENT THIS
+		
+		if(stream == null) {
+			return;
+		}
+		if(stream.size() == 0) {
+			return;
+		}
+
+		stream.reset();
+		while(stream.hasNext()) {
+			ts.add(stream.next());
+		}
+		
 	}
 	
 	/**
@@ -113,8 +135,14 @@ public class TokenStream implements Iterator<Token>{
 	 * has been reached or the current Token was removed
 	 */
 	public Token getCurrent() {
-		//TODO: YOU MUST IMPLEMENT THIS
-		return null;
+		if(!nextFetched) {
+			return null;
+		}
+		if(pointer - 1 < 0 || pointer > ts.size()) {
+			return null;
+		}
+		
+		return ts.get(pointer - 1);
 	}
 	
 	/**
