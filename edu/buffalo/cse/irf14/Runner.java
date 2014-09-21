@@ -4,12 +4,14 @@
 package edu.buffalo.cse.irf14;
 
 import java.io.File;
+import java.util.Map;
 
 import edu.buffalo.cse.irf14.document.Document;
 import edu.buffalo.cse.irf14.document.Parser;
 import edu.buffalo.cse.irf14.document.ParserException;
 import edu.buffalo.cse.irf14.index.IndexWriter;
 import edu.buffalo.cse.irf14.index.IndexerException;
+import edu.buffalo.cse.irf14.util.AccentMap;
 
 /**
  * @author nikhillo, sghodke, amitpuru
@@ -71,6 +73,10 @@ public class Runner {
 			System.out.println("DateCount: " + Parser.dateCount);
 			System.out.println("PlaceCount: " + Parser.placeCount);
 			writer.close();
+			/*
+			Map<Character, String> am = AccentMap.getAm();
+			System.out.println("\n\nMap.size:" + am.size());
+			System.out.println(am.keySet());*/
 		} catch (IndexerException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

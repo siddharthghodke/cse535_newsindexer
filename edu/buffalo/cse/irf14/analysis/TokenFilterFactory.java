@@ -10,6 +10,12 @@ package edu.buffalo.cse.irf14.analysis;
  *
  */
 public class TokenFilterFactory {
+	
+	private static final TokenFilterFactory INSTANCE = new TokenFilterFactory();
+	
+	public TokenFilterFactory() {
+		
+	}
 	/**
 	 * Static method to return an instance of the factory class.
 	 * Usually factory classes are defined as singletons, i.e. 
@@ -22,8 +28,7 @@ public class TokenFilterFactory {
 	 * @return An instance of the factory
 	 */
 	public static TokenFilterFactory getInstance() {
-		//TODO : YOU MUST IMPLEMENT THIS METHOD
-		return null;
+		return INSTANCE;
 	}
 	
 	/**
@@ -35,7 +40,22 @@ public class TokenFilterFactory {
 	 * @return The built {@link TokenFilter} instance
 	 */
 	public TokenFilter getFilterByType(TokenFilterType type, TokenStream stream) {
-		//TODO : YOU MUST IMPLEMENT THIS METHOD
+
+		if(type.toString().equals("STOPWORD")) {
+			return new StopwordTokenFilter(stream);
+		}
+		else if(type.toString().equals("ACCENT")) {
+			return new AccentTokenFilter(stream);
+		}
+		else if(type.toString().equals("SYMBOL")) {
+			return new SymbolTokenFilter(stream);
+		}
+		else if(type.toString().equals("STEMMER")) {
+			return new StemmerTokenFilter(stream);
+		}
+		else if(type.toString().equals("SPECIALCHARS")) {
+			return new SpecialCharsTokenFilter(stream);
+		}
 		return null;
 	}
 }

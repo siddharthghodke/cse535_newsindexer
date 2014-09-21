@@ -90,9 +90,12 @@ public class Parser {
 			}
 			
 			String line = null;
+			StringBuilder sb = new StringBuilder();
+			sb.append(content);
 			while((line = br.readLine()) != null) {
-				content = content + line;
+				sb.append(line);
 			}
+			content = sb.toString();
 			
 			doc.setField(FieldNames.TITLE, title);
 			doc.setField(FieldNames.AUTHOR, author);

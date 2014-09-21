@@ -15,11 +15,11 @@ import java.util.List;
  */
 public class TokenStream implements Iterator<Token>{
 	
-	List<Token> ts;
-	int pointer;
+	private List<Token> ts;
+	private int pointer;
 	// flag to verify if next item is fetched by the next() method
 	// used for getCurrent() and remove() methods
-	boolean nextFetched;
+	private boolean nextFetched;
 	
 	/**
 	 * Default constructor
