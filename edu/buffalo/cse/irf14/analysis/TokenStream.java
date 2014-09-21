@@ -20,6 +20,7 @@ public class TokenStream implements Iterator<Token>{
 	// flag to verify if next item is fetched by the next() method
 	// used for getCurrent() and remove() methods
 	private boolean nextFetched;
+	private boolean pointerResetAfterRemove;
 	
 	/**
 	 * Default constructor
@@ -29,6 +30,7 @@ public class TokenStream implements Iterator<Token>{
 		ts = new ArrayList<Token>();
 		pointer = -1;
 		nextFetched = false;
+		pointerResetAfterRemove = false;
 	}
 	
 	/**
@@ -59,6 +61,7 @@ public class TokenStream implements Iterator<Token>{
 		
 		if(pointer > -1 && pointer < ts.size()) {
 			nextFetched = true;
+			pointerResetAfterRemove = false;
 			return ts.get(pointer++);
 		}
 		
@@ -135,7 +138,7 @@ public class TokenStream implements Iterator<Token>{
 	 * has been reached or the current Token was removed
 	 */
 	public Token getCurrent() {
-		if(!nextFetched) {
+		if(!nextFetched && !pointerResetAfterRemove) {
 			return null;
 		}
 		if(pointer - 1 < 0 || pointer > ts.size()) {
@@ -164,6 +167,19 @@ public class TokenStream implements Iterator<Token>{
 	
 	public int size() {
 		return ts.size();
+	}
+	
+	/**
+	 * Method to decrement pointer to fetch the previous token AFTER calling remove()
+	 * <br><b>WARNING: </b>USE THIS ONLY AFTER A CALL TO remove(). Will result in unexpected 
+	 * results otherwise
+	 */
+	
+	public void resetPointerAfterRemove() {
+		if(pointer > 0) {
+			pointerResetAfterRemove = true;
+		}
+		return;
 	}
 	
 }

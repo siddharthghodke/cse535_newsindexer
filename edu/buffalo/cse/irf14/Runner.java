@@ -4,14 +4,12 @@
 package edu.buffalo.cse.irf14;
 
 import java.io.File;
-import java.util.Map;
 
 import edu.buffalo.cse.irf14.document.Document;
 import edu.buffalo.cse.irf14.document.Parser;
 import edu.buffalo.cse.irf14.document.ParserException;
 import edu.buffalo.cse.irf14.index.IndexWriter;
 import edu.buffalo.cse.irf14.index.IndexerException;
-import edu.buffalo.cse.irf14.util.AccentMap;
 
 /**
  * @author nikhillo, sghodke, amitpuru

@@ -56,6 +56,9 @@ public class TokenFilterFactory {
 		else if(type.toString().equals("SPECIALCHARS")) {
 			return new SpecialCharsTokenFilter(stream);
 		}
+		else if(type.toString().equals("CAPITALIZATION")) {
+			return new CapitalizationTokenFilter(stream);
+		}
 		return null;
 	}
 }

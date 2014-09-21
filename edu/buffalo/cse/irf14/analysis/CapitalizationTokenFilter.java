@@ -1,29 +1,69 @@
 package edu.buffalo.cse.irf14.analysis;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class CapitalizationTokenFilter extends TokenFilter {
 
+	private static boolean isAllCaps = true;
+	private static Token lastToken;
+	
 	public CapitalizationTokenFilter(TokenStream stream) {
 		super(stream);
+		lastToken = null;
+		Token token;
+		String tokenText;
+		while(ts.hasNext()) {
+			token = ts.next();
+			tokenText = token.toString();
+			if(!isAllCaps(tokenText)){
+				isAllCaps = false;
+				break;
+			}
+		}
+		ts.reset();
 	}
 
 	@Override
 	public boolean increment() throws TokenizerException {
 		
-		
-		return false;
+		Token token;
+		String tokenText, lastTokenText;
+		if(ts.hasNext()) {
+			token = ts.next();
+			tokenText = token.toString();
+			if(isAllCaps || (lastToken == null)) {
+				ts.getCurrent().setTermText(tokenText.toLowerCase());
+				lastToken = token;
+				return true;
+			}
+			
+			lastTokenText = lastToken.toString();
+			int lastLen = lastTokenText.length();
+			if(lastTokenText.charAt(lastLen - 1) == '.') {
+				ts.getCurrent().setTermText(tokenText.toLowerCase());
+			}
+			else if(isFirstCaps(lastTokenText) && isFirstCaps(tokenText)) {
+				ts.remove();
+				ts.resetPointerAfterRemove();
+				ts.getCurrent().merge(token);
+			}
+			else {
+				// dont do anything, since the word is already in correct form
+			}
+			lastToken = token;
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 
 	@Override
 	public TokenStream getStream() {
-		// TODO Auto-generated method stub
-		return null;
+		return ts;
 	}
 	
 	
-	private static TokenStream applyCapitalizationFilter(TokenStream tokenStream) {
+	/*private static TokenStream applyCapitalizationFilter(TokenStream tokenStream) {
 		
 		if(tokenStream == null) {
 			return null;
@@ -84,7 +124,7 @@ public class CapitalizationTokenFilter extends TokenFilter {
 		
 		return processedStream;
 	}
-	
+*/	
 	/*private static boolean isCamelCased(String str) {
 		if(str == null) {
 			return false;
