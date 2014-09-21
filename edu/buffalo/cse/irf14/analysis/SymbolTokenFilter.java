@@ -12,6 +12,7 @@ public class SymbolTokenFilter extends TokenFilter {
 	private static Map<String, String> cm;
 	private static final String REGEX_FOR_SINGLE_QUOTE = "('s$)|(')";
 	private static final String REGEX_TO_MATCH_DIGITS = "[0-9]+";
+	private static final String REGEX_FOR_SYMBOLS_AT_END = "([\\.?!;:]+$)";
 	
 	static {
 		cm = new HashMap<String, String>();
@@ -105,7 +106,7 @@ public class SymbolTokenFilter extends TokenFilter {
 			return StringPool.BLANK;
 		}
 		
-		String newTokenText = tokenText.replaceAll("([\\.?!;:]+$)", StringPool.BLANK);
+		String newTokenText = tokenText.replaceAll(REGEX_FOR_SYMBOLS_AT_END, StringPool.BLANK);
 		
 		/*String newTokenText;
 		int indexOfPeriod, indexOfExclamationMark, indexOfQuestionMark, indexOfSemicolon, indexOfColon;
@@ -227,7 +228,7 @@ public class SymbolTokenFilter extends TokenFilter {
 		Pattern pattern = Pattern.compile(REGEX_TO_MATCH_DIGITS);
 		Matcher matcher;
 			isNumber = false;
-			parts = tokenText.split("-");
+			parts = tokenText.split(StringPool.HYPHEN);
 			if(parts.length == 0) {
 				// ignore the token since it is only hyphen(s)
 				return StringPool.BLANK;

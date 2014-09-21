@@ -1,5 +1,7 @@
 package edu.buffalo.cse.irf14.analysis;
 
+import edu.buffalo.cse.irf14.util.StringPool;
+
 
 public class CapitalizationTokenFilter extends TokenFilter {
 
@@ -27,8 +29,10 @@ public class CapitalizationTokenFilter extends TokenFilter {
 		
 		Token token;
 		String tokenText, lastTokenText;
+		//System.out.println("in CapitalizationTF#increment()");
 		if(ts.hasNext()) {
 			token = ts.next();
+			//System.out.println("CTF_token:" + token.toString());
 			tokenText = token.toString();
 			if(isAllCaps || (lastToken == null)) {
 				ts.getCurrent().setTermText(tokenText.toLowerCase());
@@ -53,6 +57,7 @@ public class CapitalizationTokenFilter extends TokenFilter {
 			return true;
 		}
 		else {
+			isAllCaps = true;
 			return false;
 		}
 	}
@@ -163,7 +168,7 @@ public class CapitalizationTokenFilter extends TokenFilter {
 		if(str == null) {
 			return false;
 		}
-		if(str.isEmpty() || "".equals(str)) {
+		if(str.isEmpty() || StringPool.BLANK.equals(str)) {
 			return false;
 		}
 		
@@ -189,7 +194,7 @@ public class CapitalizationTokenFilter extends TokenFilter {
 		if(str == null) {
 			return false;
 		}
-		if(str.isEmpty() || "".equals(str)) {
+		if(str.isEmpty() || StringPool.BLANK.equals(str)) {
 			return false;
 		}
 
