@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,8 +43,8 @@ public class Parser {
 		
 		Document doc = new Document();
 		String title = StringPool.BLANK;
-		String author = null;
-		String org = null;
+		String[] author = null;
+		String[] org = null;
 		String place = StringPool.BLANK;
 		String date = StringPool.BLANK;
 		String content = StringPool.BLANK;
@@ -68,10 +69,19 @@ public class Parser {
 			//author = getAuthor(authorAndOrg);
 			//org = getOrg(authorAndOrg);
 			/// TODO return single author stream or author string array with multiple authors???
+			String authorString, orgString;
 			if(authorAndOrg != null) {
-				author = authorAndOrg[0].trim();
+				authorString = authorAndOrg[0].trim();
+				int indexOfAuthorSplit = authorString.indexOf(REGEX_FOR_MULTIPLE_AUTHORS);
+				if(indexOfAuthorSplit != -1) {
+					author = authorString.split(REGEX_FOR_MULTIPLE_AUTHORS);
+				} else {
+					author = new String[]{authorString};
+				}
+				
 				if(authorAndOrg.length > 1) {
-					org = authorAndOrg[1].trim();
+					orgString = authorAndOrg[1].trim();
+					org = new String[]{orgString};
 				}
 			}
 			
@@ -462,6 +472,9 @@ public class Parser {
 	
 	// reg-ex to check one or more occurences of whitespace characters
 	final static String REGEX_FOR_WHITESPACE_CHARACTERS = "\\s+";
+	
+	// reg-ex to split author names
+	final static String REGEX_FOR_MULTIPLE_AUTHORS = " and ";
 	
 	// remove these:
 	public static int authorCount = 0;

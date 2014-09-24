@@ -59,6 +59,9 @@ public class TokenFilterFactory {
 		else if(type.toString().equals("CAPITALIZATION")) {
 			return new CapitalizationTokenFilter(stream);
 		}
+		else if(type.toString().equals("DATE")) {
+			return new DateTokenFilter(stream);
+		}
 		return null;
 	}
 }
