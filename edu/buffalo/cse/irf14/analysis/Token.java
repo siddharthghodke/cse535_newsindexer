@@ -19,6 +19,9 @@ public class Token {
 	//The char array backing termText
 	private char[] termBuffer;
 	
+	// position in given text
+	private int pos;
+	
 	/**
 	 * Constructor to initialize Token with given string
 	 */
@@ -87,7 +90,7 @@ public class Token {
 			sb.append(StringPool.SPACE + token.getTermText());
 		}
 		termText = sb.toString();
-
+		termBuffer = (termText != null) ? termText.toCharArray() : null;
 	}
 	
 	/**
@@ -109,5 +112,13 @@ public class Token {
 			return termText;
 		}
 		return null;
+	}
+	
+	public void setPos(int pos) {
+		this.pos = pos;
+	}
+	
+	public int getPos() {
+		return pos;
 	}
 }

@@ -32,7 +32,7 @@ public class StopwordTokenFilter extends TokenFilter {
 	public boolean increment() throws TokenizerException {
 		if(ts.hasNext()) {
 			token = ts.next();
-			if(stopwords.contains(token.toString())) {
+			if(stopwords.contains(token.toString().toLowerCase())) {
 				ts.remove();
 			}
 			return true;

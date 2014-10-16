@@ -17,8 +17,10 @@ public class TokenStream implements Iterator<Token>{
 	
 	private List<Token> ts;
 	private int pointer;
-	// flag to verify if next item is fetched by the next() method
-	// used for getCurrent() and remove() methods
+	/*
+	 * flag to verify if next item is fetched by the next() method
+	 * used for getCurrent() and remove() methods
+	 * */
 	private boolean nextFetched;
 	private boolean pointerResetAfterRemove;
 	

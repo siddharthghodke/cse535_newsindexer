@@ -8,7 +8,7 @@ package edu.buffalo.cse.irf14.analysis;
  * TokenFilter rule implementations.
  * Apart from the inherited Analyzer methods, we would use the 
  * inherited constructor (as defined here) to test your code.
- * @author nikhillo
+ * @author nikhillo, sghodke, amitpuru
  *
  */
 public abstract class TokenFilter implements Analyzer {

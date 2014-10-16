@@ -4,11 +4,6 @@ import edu.buffalo.cse.irf14.util.StringPool;
 
 public class SpecialCharsTokenFilter extends TokenFilter {
 
-	private static final String REGEX_FOR_SPECIAL_CHAR = "[!@#$%^&*()\\[\\]<>/|\\{\\};+=~`,\"_\\\\]";
-	private static final String REGEX_FOR_HYPHEN = "([a-zA-Z]+)-([a-zA-Z]+)";
-	private static final String REGEX_FOR_COLON = "([0-9]{1,2}):([0-9]{1,2})(:[0-9]{1,2}){0,1}([A|P]M){0,1}";
-	private static final String MATCHED_PART_ONE = "$1";
-	private static final String MATCHED_PART_TWO = "$2";
 	public SpecialCharsTokenFilter(TokenStream stream) {
 		super(stream);
 	}
@@ -44,4 +39,9 @@ public class SpecialCharsTokenFilter extends TokenFilter {
 		return ts;
 	}
 
+	private static final String REGEX_FOR_SPECIAL_CHAR = "[!@#$%^&*()\\[\\]<>/|\\{\\};+=~`,\"_\\\\]+";
+	private static final String REGEX_FOR_HYPHEN = "([a-zA-Z]+)-([a-zA-Z]+)";
+	private static final String REGEX_FOR_COLON = "([0-9]{1,2}):([0-9]{1,2})(:[0-9]{1,2}){0,1}([A|P]M){0,1}";
+	private static final String MATCHED_PART_ONE = "$1";
+	private static final String MATCHED_PART_TWO = "$2";
 }

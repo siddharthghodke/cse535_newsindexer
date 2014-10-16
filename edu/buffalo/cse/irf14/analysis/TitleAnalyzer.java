@@ -3,39 +3,43 @@ package edu.buffalo.cse.irf14.analysis;
 public class TitleAnalyzer implements Analyzer {
 	
 	TokenStream ts;
-	TokenFilter capitalizationTF, symbolTF, stopwordTF;
-	
-	/**
-	 * pass the given token through {@link CapitalizationTokenFilter},
-	 * then through {@link SymbolTokenFilter}, then through
-	 * {@link StopwordTokenFilter}
-	 */
+	TokenFilter filter;
 	
 	public TitleAnalyzer(TokenStream stream) {
-		capitalizationTF = new CapitalizationTokenFilter(stream);
 		try {
-			while(capitalizationTF.increment());
+			TokenFilterFactory tff = TokenFilterFactory.getInstance();
 			
-			symbolTF = new SymbolTokenFilter(capitalizationTF.getStream());
-			while(symbolTF.increment());
+			filter = tff.getFilterByType(TokenFilterType.SYMBOL, stream);
+			while(filter.increment());
 			
-			stopwordTF = new StopwordTokenFilter(symbolTF.getStream());
-		
+			filter = tff.getFilterByType(TokenFilterType.NUMERIC, filter.getStream());
+			while(filter.increment());
+			
+			filter = tff.getFilterByType(TokenFilterType.CAPITALIZATION, filter.getStream());
+			while(filter.increment());
+
+			filter = tff.getFilterByType(TokenFilterType.STOPWORD, filter.getStream());
+			while(filter.increment());
+	
+			filter = tff.getFilterByType(TokenFilterType.STEMMER, filter.getStream());
+			while(filter.increment());
+				
+			filter = tff.getFilterByType(TokenFilterType.SPECIALCHARS, filter.getStream());
+			
+			ts = filter.getStream();
+			ts.reset();
 		} catch (TokenizerException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
-		ts = stopwordTF.getStream();
-		ts.reset();
 	}
 	
 
-
 	@Override
 	public boolean increment() throws TokenizerException {
-		//System.out.println("in TitleAnalyzer#increment()");
 		if(ts.hasNext()) {
-			return(stopwordTF.increment());
-			//System.out.println("TA_token:" + ts.getCurrent());
+			return filter.increment();
 		}
 		else {
 			return false;
@@ -44,7 +48,6 @@ public class TitleAnalyzer implements Analyzer {
 
 	@Override
 	public TokenStream getStream() {
-		// TODO Auto-generated method stub
 		return ts;
 	}
 

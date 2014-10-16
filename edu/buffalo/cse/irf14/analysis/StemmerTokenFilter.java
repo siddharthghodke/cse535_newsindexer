@@ -23,7 +23,6 @@ public class StemmerTokenFilter extends TokenFilter {
 			if(!(ch >= 'A' && ch <= 'Z') && !(ch >= 'a' && ch <= 'z')) {
 				newTokenText = tokenText;
 			} else {
-				//System.out.println("passing to stemmer");
 				s.add(tokenText.toCharArray(), tokenText.length());
 				s.stem();
 				newTokenText = s.toString();

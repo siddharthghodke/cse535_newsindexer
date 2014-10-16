@@ -1,6 +1,10 @@
 package edu.buffalo.cse.irf14.util;
 
-//credits: http://tartarus.org/martin/PorterStemmer/java.txt
+/*
+ * -----------------NOT OUR CODE---------------
+ * Credits:http://tartarus.org/martin/PorterStemmer/java.txt
+ */
+
 /*
 
 Porter stemmer in Java. The original paper is in
@@ -560,7 +564,5 @@ public class Stemmer {
 		i_end = k + 1;
 		i = 0;
 	}
-	
-	
 	
 }

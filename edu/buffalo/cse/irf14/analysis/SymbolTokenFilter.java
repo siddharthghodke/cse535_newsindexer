@@ -12,7 +12,7 @@ public class SymbolTokenFilter extends TokenFilter {
 	private static Map<String, String> cm;
 	private static final String REGEX_FOR_SINGLE_QUOTE = "('s$)|(')";
 	private static final String REGEX_TO_MATCH_DIGITS = "[0-9]+";
-	private static final String REGEX_FOR_SYMBOLS_AT_END = "([\\.?!;:]+$)";
+	private static final String REGEX_FOR_SYMBOLS_AT_END = "([\\.?!;:]+(\")?$)";
 	
 	static {
 		cm = new HashMap<String, String>();
@@ -101,31 +101,17 @@ public class SymbolTokenFilter extends TokenFilter {
 		}
 	}
 
+	@Override
+	public TokenStream getStream() {
+		return ts;
+	}
+
 	private static String removeAtEnd(String tokenText) {
 		if(tokenText == null || tokenText.equals(StringPool.BLANK)) {
 			return StringPool.BLANK;
 		}
 		
 		String newTokenText = tokenText.replaceAll(REGEX_FOR_SYMBOLS_AT_END, StringPool.BLANK);
-		
-		/*String newTokenText;
-		int indexOfPeriod, indexOfExclamationMark, indexOfQuestionMark, indexOfSemicolon, indexOfColon;
-		int tokenLength = tokenText.length();
-		indexOfPeriod = tokenText.lastIndexOf(StringPool.PERIOD);
-		if(indexOfPeriod == tokenLength - 1) {
-			newTokenText = tokenText.substring(0, indexOfPeriod);
-		} else if ((indexOfQuestionMark = tokenText.lastIndexOf(StringPool.QUESTION_MARK)) == tokenLength - 1) {
-			newTokenText = tokenText.substring(0, indexOfQuestionMark);
-		} else if ((indexOfExclamationMark = tokenText.lastIndexOf(StringPool.EXCLAMATION_MARK)) == tokenLength - 1) {
-			newTokenText = tokenText.substring(0, indexOfExclamationMark);
-		} else if ((indexOfSemicolon = tokenText.lastIndexOf(StringPool.SEMICOLON)) == tokenLength - 1) {
-			newTokenText = tokenText.substring(0, indexOfSemicolon);
-		} else if ((indexOfColon = tokenText.lastIndexOf(StringPool.COLON)) == tokenLength - 1) {
-			newTokenText = tokenText.substring(0, indexOfColon);
-		} else {
-			newTokenText = tokenText;
-		}*/
-
 		return newTokenText;
 	}
 	
@@ -162,62 +148,6 @@ public class SymbolTokenFilter extends TokenFilter {
 		return newTokenText;
 	}
 	
-	/*private static String removeSingleQuotes(String tokenText) {
-
-		String startQuoteToken = null;
-		int indexOfQuote, secondIndexOfQuote, startQuoteTokenIndex = -1;
-		String[] processedStream = new String[strTokens.length];
-		int tokenLength;
-		
-		for(int i=0; i<strTokens.length; i++) {
-			token = strTokens[i];
-			tokenLength = token.length();
-			indexOfQuote = token.indexOf("'");
-			secondIndexOfQuote = token.indexOf("'", indexOfQuote + 1);
-			if(indexOfQuote == 0 && secondIndexOfQuote == tokenLength - 1) {
-				processedStream[i] = token.substring(1, secondIndexOfQuote);
-			} else if(indexOfQuote == 0) {
-				startQuoteTokenIndex = i;
-				startQuoteToken = token;
-				processedStream[i] = token;
-			} else if ((indexOfQuote == tokenLength - 1) && (startQuoteToken != null)) {
-				processedStream[startQuoteTokenIndex] = startQuoteToken.substring(1);
-				processedStream[i] = token.substring(0, indexOfQuote);
-				startQuoteToken = null;
-			} else {
-				processedStream[i] = token;
-			}
-		}
-		return processedStream;
-	}*/
-	
-	/*private static String[] removePossesiveApostrophes(String[] strTokens) {
-		String token, newToken;
-		String[] processedStream = new String[strTokens.length];
-		int indexOfApostrophe;
-		int tokenLength;
-		
-		for(int i=0; i<strTokens.length; i++) {
-			token = strTokens[i];
-			tokenLength = token.length();
-			indexOfApostrophe = token.indexOf("'");
-			if(indexOfApostrophe == tokenLength - 1) {
-				// if last character of the token is apostrophe
-				newToken = token.substring(0, indexOfApostrophe);
-			} else if ((indexOfApostrophe == tokenLength - 2) && (token.charAt(tokenLength - 1) == 's')) {
-				// if last 2 characters of the token are => 's
-				newToken = token.substring(0, indexOfApostrophe);
-			} else {
-				newToken = token;
-			}
-			
-			processedStream[i] = newToken;
-		}
-		
-		
-		return processedStream;
-	}*/
-	
 	private static String removeHyphens(String tokenText) {
 		
 		if(tokenText == null || tokenText.equals(StringPool.BLANK)) {
@@ -227,61 +157,50 @@ public class SymbolTokenFilter extends TokenFilter {
 		String[] parts;
 		Pattern pattern = Pattern.compile(REGEX_TO_MATCH_DIGITS);
 		Matcher matcher;
-			isNumber = false;
-			parts = tokenText.split(StringPool.HYPHEN);
-			if(parts.length == 0) {
-				// ignore the token since it is only hyphen(s)
-				return StringPool.BLANK;
-			}
-			
-			else if(parts.length == 1) {
-				// add this part as it is, since the hyphen(s) are removed
+		isNumber = false;
+		parts = tokenText.split(StringPool.HYPHEN);
+		if(parts.length == 0) {
+			// ignore the token since it is only hyphen(s)
+			return StringPool.BLANK;
+		}
+		
+		else if(parts.length == 1) {
+			// add this part as it is, since the hyphen(s) are removed
+			return parts[0];
+		}
+		
+		else if(parts.length == 2) {
+			// if either of the part is empty, add the other part, since both parts cannot be empty
+			if(parts[0].isEmpty() || parts[0].equals(StringPool.BLANK)) {
+				return parts[1];
+			} else if(parts[1].isEmpty() || parts[1].equals(StringPool.BLANK)) {
 				return parts[0];
 			}
 			
-			else if(parts.length == 2) {
-				// if either of the part is empty, add the other part, since both parts cannot be empty
-				if(parts[0].isEmpty() || parts[0].equals(StringPool.BLANK)) {
-					return parts[1];
-				} else if(parts[1].isEmpty() || parts[1].equals(StringPool.BLANK)) {
-					return parts[0];
-				}
-				
-				// check if number is present in either of the parts
-				matcher = pattern.matcher(parts[0]);
-				if(!matcher.find()) {
-					matcher = pattern.matcher(parts[1]);
-					if(matcher.find()) {
-						isNumber = true;
-					}
-				} else {
+			// check if number is present in either of the parts
+			matcher = pattern.matcher(parts[0]);
+			if(!matcher.find()) {
+				matcher = pattern.matcher(parts[1]);
+				if(matcher.find()) {
 					isNumber = true;
 				}
-				
-				// if number is present, then preserve the token
-				// else return space separated value for token e.g. week-day => week day
-				if(isNumber) {
-					return tokenText;
-				} else {
-					return tokenText.replace(StringPool.HYPHEN, StringPool.SPACE);
-				}
+			} else {
+				isNumber = true;
 			}
 			
-			else {
-				// remove all the hyphens and add the non-empty parts
-				/*for(String part: parts) {
-					if(!part.isEmpty() && !part.equals("")) {
-						processedStream.add(part);
-					}
-				}*/
-				return tokenText.replaceAll(StringPool.HYPHEN, StringPool.BLANK);
+			// if number is present, then preserve the token
+			// else return space separated value for token e.g. week-day => week day
+			if(isNumber) {
+				return tokenText;
+			} else {
+				return tokenText.replace(StringPool.HYPHEN, StringPool.SPACE);
 			}
+		}
+		
+		else {
+			// remove all the hyphens and add the non-empty parts
+			return tokenText.replaceAll(StringPool.HYPHEN, StringPool.BLANK);
+		}
 	}
 	
-	@Override
-	public TokenStream getStream() {
-		return ts;
-	}
-	
-
 }
