@@ -18,7 +18,6 @@ public class Tokenizer {
 	 * Default constructor. Assumes tokens are whitespace delimited
 	 */
 	public Tokenizer() {
-
 		delim = StringPool.SPACE;
 	}
 	
@@ -27,7 +26,6 @@ public class Tokenizer {
 	 * @param delim : The delimiter to be used
 	 */
 	public Tokenizer(String delim) {
-
 		this.delim = delim;
 	}
 	
@@ -46,7 +44,7 @@ public class Tokenizer {
 	 * tokenization
 	 */
 	public TokenStream consume(String str) throws TokenizerException {
-		// TODO property file for exception messages
+		// TODO create property file for exception messages
 		if(null == str) {
 			throw new TokenizerException("Cannot consume null string");
 		}
@@ -57,24 +55,24 @@ public class Tokenizer {
 		
 		TokenStream ts = new TokenStream();
 		Token token;
+		int pos = 0;
 		
 		try {
 			String[] parts = str.split(delim);
-			
 			for(String part: parts) {
 				if(StringPool.BLANK.equals(part)) {
 					continue;
 				}
 				token = new Token(part);
+				pos++;
+				token.setPos(pos);
 				ts.add(token);
 			}
 			
 			return ts;
 			
 		} catch(Exception e) {
-			// TODO
-			e.printStackTrace();
+			throw new TokenizerException(e.getMessage());
 		}
-		return null;
 	}
 }

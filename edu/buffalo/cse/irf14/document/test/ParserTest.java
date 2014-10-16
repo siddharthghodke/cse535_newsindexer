@@ -112,7 +112,7 @@ public class ParserTest {
 	private void validateAuthorOrg(Document d, int count){
 		String authorOrg = authororgs[count];
 		if (authorOrg == null) {
-			assertNull(d.getField(FieldNames.AUTHORORG)[0]);
+			assertNull(d.getField(FieldNames.AUTHORORG));
 		} else {
 			assertEquals(authorOrg,
 				d.getField(FieldNames.AUTHORORG)[0]);	
@@ -133,7 +133,7 @@ public class ParserTest {
 		String author = authors[count];
 
 		if (author == null) {
-			assertNull(d.getField(FieldNames.AUTHOR)[0]);
+			assertNull(d.getField(FieldNames.AUTHOR));
 		} else {
 			assertEquals(author,
 				d.getField(FieldNames.AUTHOR)[0]);	
