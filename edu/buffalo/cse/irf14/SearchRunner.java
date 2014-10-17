@@ -5,8 +5,12 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
+import edu.buffalo.cse.irf14.document.Posting;
+import edu.buffalo.cse.irf14.index.IndexReader;
+import edu.buffalo.cse.irf14.index.IndexType;
 import edu.buffalo.cse.irf14.query.Query;
 import edu.buffalo.cse.irf14.query.QueryParser;
+import edu.buffalo.cse.irf14.query.QueryUtil;
 
 /**
  * Main class to run the searcher.
@@ -93,9 +97,29 @@ public class SearchRunner {
 	
 	// TODO remove this method
 	public static void main(String[] args) {
-		String userQuery = "Category:War AND Author:Dutt AND Place:Baghdad AND prisoners detainees rebels";
+		//String userQuery = "Category:War AND Author:Dutt AND Place:Baghdad AND prisoners detainees rebels";
+		//String userQuery = "pct mln";
+		
+		
+		String userQuery = "((mln NOT pct) OR dlr) OR us";
 		Query query = QueryParser.parse(userQuery, "OR");
 		System.out.println(query.toString());
 		//System.out.println("{ Category:War AND Author:Dutt AND Place:Baghdad AND [ Term:prisoners OR Term:detainees OR Term:rebels ] }");
+		
+		QueryUtil queryUtil = new QueryUtil("/home/IR/newTestIndex");
+		List<Posting> resultList = queryUtil.getResult(query.getParsedQuery());
+		System.out.println(resultList.size());
+		
+		for(Posting p: resultList) {
+			System.out.println(p.getDocFrequencyList().size() + " " + p.getTermFrequencyList().size());
+		}
+		/*IndexReader reader = new IndexReader("/home/IR/newTestIndex", IndexType.TERM);
+		String queryTerm = "us.*";
+		List<String> termMatches = reader.getQueryTerms(queryTerm);
+		
+		for(String s: termMatches) {
+			System.out.println(s);
+		}*/
+		
 	}
 }

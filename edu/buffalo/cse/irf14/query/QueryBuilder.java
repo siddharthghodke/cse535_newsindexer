@@ -5,6 +5,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.buffalo.cse.irf14.util.Constants;
+import edu.buffalo.cse.irf14.util.StringPool;
+
 public class QueryBuilder {
 	
 	public QueryBuilder(String query, String defOp) {
@@ -22,8 +25,9 @@ public class QueryBuilder {
 		groupAndApplyTermIndex();
 		expandIndexScope();
 		includeDefaultOp();
-		TreeNode root = constructTree();
-		nonRecursiveInOrder(root);
+		TreeNode root = constructTree(parsedQuery);
+		inOrder(root);
+		parsedQuery = inorderString.toString();
 		expandPhrases();
 		
 		return parsedQuery;
@@ -102,96 +106,49 @@ public class QueryBuilder {
 	}
 
 	static int precedence(String op) {
-		if(op.equals("OR")) {
+		if(op.equals(Constants.OR)) {
 			return 2;
-		} else if(op.equals("AND")) {
+		} else if(op.equals(Constants.AND)) {
 			return 1;
 		}
 		return 0;
 	}
 	
 	static boolean isOperator(String str) {
-		if(str.equals("OR") || str.equals("AND") || str.equals("NOT")) {
+		if(str.equals(Constants.OR) || str.equals(Constants.AND) || str.equals(Constants.NOT)) {
 			return true;
 		}
 		return false;
 	}
 	
-	public TreeNode constructTree() {
-		
-		String[] tokens = parsedQuery.split(" ");
-		OperatorStack opStack = new OperatorStack();
-		TreeStack treeNodeStack = new TreeStack();
-		TreeNode node;
-		for(String token: tokens) {
-			String stackOp;
-			if(isOperator(token)) {
-				if(opStack.isEmpty()) {
-					opStack.push(token);
-				} else {
-					stackOp = opStack.peek();
-					if(precedence(token) > precedence(stackOp)) {
-						opStack.push(token);
-					} else {
-						node = new TreeNode(opStack.pop());
-						node.right = treeNodeStack.pop();
-						node.left = treeNodeStack.pop();
-						treeNodeStack.push(node);
-						opStack.push(token);
-					}
-				}
-			}
-			else {
-				node = new TreeNode(token);
-				node.right = node.left = null;
-				treeNodeStack.push(node);
-			}
-		}
-		
-		while(!opStack.isEmpty()) {
-			node = new TreeNode(opStack.pop());
-			node.right = treeNodeStack.pop();
-			node.left = treeNodeStack.pop();
-			treeNodeStack.push(node);
-		}
-		
-		return treeNodeStack.pop();
-	}
-	
 	private void removePhrases() {
-		int indexOfQuote = parsedQuery.indexOf("\"");
+		int indexOfQuote = parsedQuery.indexOf(StringPool.DOUBLE_QUOTES);
 		String phraseToReplace;
 		int i = 0;
 		while(indexOfQuote != -1) {
 			i++;
-			int indexOfSecondQuote = parsedQuery.indexOf("\"", indexOfQuote + 1);
+			int indexOfSecondQuote = parsedQuery.indexOf(StringPool.DOUBLE_QUOTES, indexOfQuote + 1);
 			phraseToReplace = parsedQuery.substring(indexOfQuote, indexOfSecondQuote + 1);
 			termMap.put(i, phraseToReplace);
-			parsedQuery = parsedQuery.replaceAll(phraseToReplace, "^" + i);
-			indexOfQuote = parsedQuery.indexOf("\"");
+			parsedQuery = parsedQuery.replaceAll(phraseToReplace, StringPool.CAROT + i);
+			indexOfQuote = parsedQuery.indexOf(StringPool.DOUBLE_QUOTES);
 		}
-		
-		//return query;
-		//parsedQuery = query;
 	}
+	
 	private void expandPhrases() {
-		
-		if(!parsedQuery.contains("^")) {
+		if(!parsedQuery.contains(StringPool.CAROT)) {
 			return;
 		}
 		
-		int indexOfCarot = parsedQuery.indexOf("^");
+		int indexOfCarot = parsedQuery.indexOf(StringPool.CAROT);
 		while(indexOfCarot != -1) {
 			Integer i = Integer.parseInt(parsedQuery.substring(indexOfCarot + 1, indexOfCarot + 2));
 			String phrase = termMap.get(i);
 			if(phrase != null) {
 				parsedQuery = parsedQuery.substring(0, indexOfCarot) + phrase + parsedQuery.substring(indexOfCarot + 2);
 			}
-			indexOfCarot = parsedQuery.indexOf("^");
+			indexOfCarot = parsedQuery.indexOf(StringPool.CAROT);
 		}
-		
-		//return query;
-		//parsedQuery = query;
 	}
 	
 	private void groupAndApplyTermIndex() {
@@ -201,9 +158,8 @@ public class QueryBuilder {
 		}
 		boolean isGrouping = false;
 		int groupingCount = 0;
-		String[] tokens = parsedQuery.split(" ");
+		String[] tokens = parsedQuery.split(StringPool.SPACE);
 		StringBuilder sb = new StringBuilder();
-		//int indexOfParenthesis = -1;
 		for(String token: tokens) {
 			if(token.contains("Term:") || token.contains("Category:") || token.contains("Place:") || token.contains("Author:") || isOperator(token)) {
 				if(isGrouping && groupingCount > 1) {
@@ -215,146 +171,190 @@ public class QueryBuilder {
 				}
 				isGrouping = false;
 				groupingCount = 0;
-				sb.append(token + " ");
+				sb.append(token + StringPool.SPACE);
 			} else {
 				groupingCount++;
 				if(!isGrouping) {
 					sb.append("Term:(");
 				}
-				sb.append(token + " ");
+				sb.append(token + StringPool.SPACE);
 				isGrouping = true;
 			}
 		}
 		
 		if(isGrouping && groupingCount > 1) {
 			sb.delete(sb.length() - 1, sb.length());
-			sb.append(")");
+			sb.append(StringPool.CLOSE_PARENTHESIS);
 		} else if(isGrouping) {
 			int indexToTrim = sb.lastIndexOf("Term:(");
 			sb.delete(indexToTrim, indexToTrim + 6);
 		}
 		
-		//return sb.toString().trim();
 		parsedQuery = sb.toString().trim();
 	}
 	
 	private void expandIndexScope() {
-		String[] tokens = parsedQuery.split(" ");
+		String[] tokens = parsedQuery.split(StringPool.SPACE);
 		String index = null;
 		StringBuilder sb = new StringBuilder();
 		for(String token: tokens) {
 			if(token.contains(":(")) {
 				String[] parts = token.split(":\\(");
 				index = parts[0];
-				sb.append("(");
+				sb.append(StringPool.OPEN_PARENTHESIS);
 				if(parts[1] != null && !isOperator(parts[1])) {
-					sb.append(index + ":" + parts[1] + " ");
+					sb.append(index + StringPool.COLON + parts[1] + StringPool.SPACE);
 				}
 			} else if(index != null && !isOperator(token)) {
-				int indexOfCloseParenthesis = token.indexOf(")");
-				sb.append(index + ":" + token + " ");
+				int indexOfCloseParenthesis = token.indexOf(StringPool.CLOSE_PARENTHESIS);
+				sb.append(index + StringPool.COLON + token + StringPool.SPACE);
 				if(indexOfCloseParenthesis != -1) {
 					index = null;
 				}
 			} else {
-				sb.append(token + " ");
+				sb.append(token + StringPool.SPACE);
 			}
 		}
 		
-		//return sb.toString().trim();
 		parsedQuery = sb.toString().trim();
 	}
 	
 	private void includeDefaultOp() {
 		StringBuilder sb = new StringBuilder();
-		String[] tokens = parsedQuery.split(" ");
+		String[] tokens = parsedQuery.split(StringPool.SPACE);
 		boolean lastOp = true;
 		boolean lastNOT = false;
 		for(String token: tokens) {
 			if(isOperator(token)) {
 				lastOp = true;
-				if(token.equals("NOT")) {
-					token = "AND";
+				if(token.equals(Constants.NOT)) {
+					token = Constants.AND;
 					lastNOT = true;
 				}
-				sb.append(token + " ");
+				sb.append(token + StringPool.SPACE);
 			} else if(!lastOp) {
-				sb.append(defOp + " " + token + " ");
+				sb.append(defOp + StringPool.SPACE + token + StringPool.SPACE);
 				lastOp = false;
 			} else {
 				if(lastNOT) {
-					sb.append("~");
+					sb.append(StringPool.TILDE);
 				}
-				sb.append(token + " ");
+				sb.append(token + StringPool.SPACE);
 				lastOp = false;
 				lastNOT = false;
 			}
 		}
-		//String extendedQuery = sb.toString().trim();
-		//return extendedQuery;
 		parsedQuery = sb.toString().trim();
 	}
 	
-	private void nonRecursiveInOrder(TreeNode root) {
-		inorderString = new StringBuilder();
-		TreeStack stack = new TreeStack();
-		while(root != null) {
-			stack.push(root);
-			root = root.left;
-		}
-		
-		inorderString.append("{ ");
+	private TreeNode constructTree(String query) {
+		TreeStack treeNodeStack = new TreeStack();
 		TreeNode node;
-		//boolean isExplicitIndex = false;
-		while(!stack.isEmpty()) {
-			node = stack.pop();
-			int indexOfParenthesis = node.data.indexOf("(");
-			if(indexOfParenthesis != -1) {
-				inorderString.append("[ ");
-				node.data = node.data.substring(indexOfParenthesis + 1);
-			}
-			int indexOfCloseParenthesis = node.data.indexOf(")");
-			if(indexOfCloseParenthesis != -1) {
-				node.data = node.data.substring(0, indexOfCloseParenthesis);
-			}
-			
-			int indexOfTilde = node.data.indexOf("~");
-			if(indexOfTilde != -1) {
-				inorderString.append("<");
-				node.data = node.data.substring(indexOfTilde + 1);
-			}
-			if(!node.data.contains(":") && !isOperator(node.data)) {	
-				inorderString.append("Term:");
-			}
-			inorderString.append(node.data + " ");
-			
-			if(indexOfTilde != -1) {
-				inorderString.deleteCharAt(inorderString.length() - 1);
-				inorderString.append(">");
-			}
-			if (indexOfCloseParenthesis != -1) {
-				if(inorderString.charAt(inorderString.length() - 1) == ' ') {
-					inorderString.append("] ");
+		OperatorStack opStack = new OperatorStack();
+		String[] tokens = query.split(StringPool.SPACE);
+		int openBr = 0;
+		StringBuilder subTreeString = new StringBuilder();
+		for(String token: tokens) {
+			if(isOperator(token) && openBr == 0) {
+				if(opStack.isEmpty()) {
+					opStack.push(token);
 				} else {
-					inorderString.append(" ] ");
+					node = new TreeNode(opStack.pop());
+					node.right = treeNodeStack.pop();
+					node.left = treeNodeStack.pop();
+					treeNodeStack.push(node);
+					opStack.push(token);
 				}
 			}
-			
-			node = node.right;
-			while(node != null) {
-				stack.push(node);
-				node = node.left;
+			else {
+				int indexOfOpenParenthesis = token.indexOf(StringPool.OPEN_PARENTHESIS);
+				int indexOfCloseParenthesis = token.lastIndexOf(StringPool.CLOSE_PARENTHESIS);
+				if(openBr == 0 && indexOfOpenParenthesis == -1 && indexOfCloseParenthesis == -1) {
+					node = new TreeNode(token);
+					node.right = node.left = null;
+					treeNodeStack.push(node);
+					continue;
+				}
+				
+				if(indexOfOpenParenthesis == -1 && indexOfCloseParenthesis == -1) {
+					subTreeString.append(token + StringPool.SPACE);
+					continue;
+				}
+				
+				if(indexOfOpenParenthesis != -1) {
+					int innerOpenParenthesis = token.indexOf(StringPool.OPEN_PARENTHESIS, indexOfOpenParenthesis + 1);
+					if(openBr == 0) {
+						subTreeString.append(token.substring(1) + StringPool.SPACE);
+					} else {
+						subTreeString.append(token + StringPool.SPACE);
+					}
+					while(innerOpenParenthesis != -1) {
+						openBr++;
+						innerOpenParenthesis = token.indexOf(StringPool.OPEN_PARENTHESIS, innerOpenParenthesis + 1);
+					}
+					openBr++;
+					continue;
+				} else if(indexOfCloseParenthesis != -1) {
+					int innerCloseParenthesis = token.indexOf(StringPool.CLOSE_PARENTHESIS);
+					while(innerCloseParenthesis != -1) {
+						openBr--;
+						innerCloseParenthesis = token.indexOf(StringPool.CLOSE_PARENTHESIS, innerCloseParenthesis + 1);
+					}
+					if(openBr == 0) {
+						subTreeString.append(token.substring(0, indexOfCloseParenthesis));
+					} else {
+						subTreeString.append(token + StringPool.SPACE);
+					}
+					if(openBr != 0) {
+						continue;
+					} else {
+						node = constructTree(subTreeString.toString());
+						subTreeString = new StringBuilder();
+						node.data = StringPool.HASH + node.data;
+						treeNodeStack.push(node);
+					}
+				}
 			}
 		}
-		if(inorderString.charAt(inorderString.length() - 1) == ' ') {
-			inorderString.append("}");
-		} else {
-			inorderString.append(" }");
-		}
 		
-		parsedQuery = inorderString.toString().trim();
+		while(!opStack.isEmpty()) {
+			node = new TreeNode(opStack.pop());
+			node.right = treeNodeStack.pop();
+			node.left = treeNodeStack.pop();
+			treeNodeStack.push(node);
+		}
+		return treeNodeStack.pop();
 	}
 	
+	private void inOrder(TreeNode root) {
+		if(root != null) {
+			char ch = root.data.charAt(0);
+			if(ch == '#') {
+				root.data = root.data.substring(1);
+				inorderString.append("[ ");
+			}
+			inOrder(root.left);
+			StringBuilder tempRootData = new StringBuilder(root.data);
+			boolean addNot = false;
+			if(ch == '~') {
+				tempRootData.delete(0, 1);
+				addNot = true;
+			}
+			if(!root.data.contains(StringPool.COLON) && !isOperator(root.data)) {	
+				tempRootData.insert(0, "Term:");
+			}
+			if(addNot) {
+				tempRootData.insert(0, StringPool.LESS_THAN);
+				tempRootData.append(StringPool.GREATER_THAN);
+			}
+			root.data = tempRootData.toString();
+			inorderString.append(root.data + StringPool.SPACE);
+			inOrder(root.right);
+			if(ch == '#') {
+				inorderString.append("] ");
+			}
+		}
+	}
 	
 	private Map<Integer, String> termMap;
 	private StringBuilder inorderString;

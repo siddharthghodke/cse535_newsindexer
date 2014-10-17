@@ -15,6 +15,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.hamcrest.core.IsEqual;
 
@@ -374,5 +376,41 @@ public class IndexReader {
 			resultMatrix.put(fileId, entry.getValue());
 		}
 		return resultMatrix;
+	}
+	
+	public PostingsList getPostingsList(String term) {
+		Integer termId;
+		if(indexType.equals(IndexType.TERM.toString().toLowerCase())) {
+			termId = TermDictionary.getTermId(term);
+		} else if(indexType.equals(IndexType.AUTHOR.toString().toLowerCase())) {
+			termId = AuthorDictionary.getAuthorId(term);
+		} else if(indexType.equals(IndexType.CATEGORY.toString().toLowerCase())) {
+			termId = CategoryDictionary.getCatId(term);
+		} else if(indexType.equals(IndexType.PLACE.toString().toLowerCase())) {
+			termId = PlaceDictionary.getPlaceId(term);
+		} else {
+			return null;
+		}
+		if(termId == null) {
+			return null;
+		}
+		
+		return index.get(termId);
+	}
+	
+	public List<String> getQueryTerms(String s) {
+		
+		Pattern pattern = Pattern.compile(s);
+		Matcher matcher;
+		List<String> matchedTerms = new ArrayList<String>();
+		
+		for(String term: TermDictionary.getDictionary().keySet()) {
+			//matcher = pattern.matcher(term);
+			if(pattern.matcher(term).matches()) {
+				matchedTerms.add(term);
+			}
+		}
+		
+		return matchedTerms;
 	}
 }

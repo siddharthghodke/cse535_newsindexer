@@ -22,6 +22,10 @@ public class Query {
 	 */
 	public String toString() {
 		parsedQuery = new QueryBuilder(query, defOp).buildQuery();
+		return "{ " + parsedQuery + " }";
+	}
+	
+	public String getParsedQuery() {
 		return parsedQuery;
 	}
 }
