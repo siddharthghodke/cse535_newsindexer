@@ -27,4 +27,10 @@ public class Constants {
 	
 	public static final String NUMERIC = "NUMERIC";
 	
+	public static final String AND = "AND";
+	
+	public static final String OR = "OR";
+	
+	public static final String NOT = "NOT";
+	
 }

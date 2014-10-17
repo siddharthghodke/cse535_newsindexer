@@ -375,4 +375,24 @@ public class IndexReader {
 		}
 		return resultMatrix;
 	}
+	
+	public PostingsList getPostingsList(String term) {
+		Integer termId;
+		if(indexType.equals(IndexType.TERM.toString().toLowerCase())) {
+			termId = TermDictionary.getTermId(term);
+		} else if(indexType.equals(IndexType.AUTHOR.toString().toLowerCase())) {
+			termId = AuthorDictionary.getAuthorId(term);
+		} else if(indexType.equals(IndexType.CATEGORY.toString().toLowerCase())) {
+			termId = CategoryDictionary.getCatId(term);
+		} else if(indexType.equals(IndexType.PLACE.toString().toLowerCase())) {
+			termId = PlaceDictionary.getPlaceId(term);
+		} else {
+			return null;
+		}
+		if(termId == null) {
+			return null;
+		}
+		
+		return index.get(termId);
+	}
 }

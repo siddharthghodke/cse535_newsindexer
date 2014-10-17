@@ -11,6 +11,10 @@ public class StringPool {
 	
 	public static final String BLANK = "";
 	
+	public static final String CAROT = "^";
+
+	public static final String CLOSE_PARENTHESIS = ")";
+	
 	public static final String CLOSE_SQUARE_BRACKETS = "]";
 	
 	public static final String COLON = ":";
@@ -37,6 +41,8 @@ public class StringPool {
 	
 	public static final String NEW_LINE = "\n";
 	
+	public static final String OPEN_PARENTHESIS = "(";
+	
 	public static final String OPEN_SQUARE_BRACKETS = "[";
 	
 	public static final String PERIOD = ".";
@@ -52,6 +58,8 @@ public class StringPool {
 	public static final String SLASH = FORWARD_SLASH;
 	
 	public static final String SPACE = " ";
+	
+	public static final String TILDE = "~";
 	
 	public static final String UNDERSCORE = "_";
 	
