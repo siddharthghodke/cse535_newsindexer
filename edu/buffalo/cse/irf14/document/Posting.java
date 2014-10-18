@@ -16,12 +16,14 @@ public class Posting implements Serializable {
 	/* term frequency and doc frequency for result posting */
 	private List<Integer> termFrequency;
 	private List<Integer> docFrequency;
+	private List<List<Integer>> positionList;
 	
 	public Posting(Posting p) {
 		this.docId = p.getDocId();
 		this.positions = p.getPositions();
 		termFrequency = new ArrayList<Integer>();
 		docFrequency = new ArrayList<Integer>();
+		positionList = new ArrayList<List<Integer>>();
 	}
 	
 	public Posting(int docId, int position) {
@@ -74,6 +76,18 @@ public class Posting implements Serializable {
 	
 	public void setDocFrequencyList(List<Integer> dfList) {
 		docFrequency = dfList;
+	}
+	
+	public void addPositionList(List<Integer> posList) {
+		positionList.add(posList);
+	}
+	
+	public List<List<Integer>> getPostionList() {
+		return positionList;
+	}
+	
+	public void setPositionList(List<List<Integer>> posList) {
+		positionList = posList;
 	}
 	
 }

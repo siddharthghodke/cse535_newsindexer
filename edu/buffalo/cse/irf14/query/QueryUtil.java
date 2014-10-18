@@ -3,6 +3,11 @@ package edu.buffalo.cse.irf14.query;
 import java.util.ArrayList;
 import java.util.List;
 
+import edu.buffalo.cse.irf14.analysis.Analyzer;
+import edu.buffalo.cse.irf14.analysis.AnalyzerFactory;
+import edu.buffalo.cse.irf14.analysis.TokenStream;
+import edu.buffalo.cse.irf14.analysis.Tokenizer;
+import edu.buffalo.cse.irf14.document.FieldNames;
 import edu.buffalo.cse.irf14.document.Posting;
 import edu.buffalo.cse.irf14.document.PostingsList;
 import edu.buffalo.cse.irf14.index.IndexReader;
@@ -12,80 +17,186 @@ import edu.buffalo.cse.irf14.util.StringPool;
 
 public class QueryUtil {
 	
-	IndexReader termIndexReader;
-	IndexReader categoryIndexReader;
-	IndexReader authorIndexReader;
-	IndexReader placeIndexReader;
+	static IndexReader termIndexReader;
+	static IndexReader categoryIndexReader;
+	static IndexReader authorIndexReader;
+	static IndexReader placeIndexReader;
+	Analyzer termAnalyzer, authorAnalyzer, categoryAnalyzer, placeAnalyzer;
+	AnalyzerFactory analyzerFactory;
+	Tokenizer whiteSpaceTokenizer;
+	TokenStream ts;
+	
+	static {
+		
+	}
 	
 	public QueryUtil(String indexDir) {
 		termIndexReader = new IndexReader(indexDir, IndexType.TERM);
 		categoryIndexReader = new IndexReader(indexDir, IndexType.CATEGORY);
 		authorIndexReader = new IndexReader(indexDir, IndexType.AUTHOR);
 		placeIndexReader = new IndexReader(indexDir, IndexType.PLACE);
+		whiteSpaceTokenizer = new Tokenizer();
+		analyzerFactory = AnalyzerFactory.getInstance();
 	}
 	
 	public List<Posting> getResult(String query) {
 		
-		// base case
-		if(!query.contains(StringPool.OPEN_SQUARE_BRACKETS)) {
-			List<Posting> resultList;
-			List<String> operatorList = new ArrayList<String>();
-			List<List<Posting>> ps = new ArrayList<List<Posting>>();
-			String[] tokens = query.split(StringPool.SPACE);
-			String[] tokenParts;
-			String indexType, term;
-			PostingsList postingList;
-			for(String token: tokens) {
-				if(isOperator(token)) {
-					operatorList.add(token);
-				} else {
-					// TODO use pattern matcher
-					if(token.contains(StringPool.LESS_THAN)) {
-						token = token.replaceAll(StringPool.LESS_THAN, StringPool.BLANK);
-						token = token.replaceAll(StringPool.GREATER_THAN, StringPool.BLANK);
-						operatorList.remove(operatorList.size() - 1);
-						operatorList.add(Constants.NOT);
-					}
-					tokenParts = token.split(StringPool.COLON);
-					if(tokenParts.length == 2) {
-						indexType = tokenParts[0];
-						term = tokenParts[1];
-						if(indexType.equalsIgnoreCase(IndexType.AUTHOR.toString())) {
-							postingList  = authorIndexReader.getPostingsList(term);
-						} else if(indexType.equalsIgnoreCase(IndexType.CATEGORY.toString())) {
-							postingList = categoryIndexReader.getPostingsList(term);
-						} else if(indexType.equalsIgnoreCase(IndexType.PLACE.toString())) {
-							postingList = placeIndexReader.getPostingsList(term);
-						} else {
-							postingList = termIndexReader.getPostingsList(term);
+		try {
+			// base case
+			if(!query.contains(StringPool.OPEN_SQUARE_BRACKETS)) {
+				List<Posting> resultList;
+				List<String> operatorList = new ArrayList<String>();
+				List<List<Posting>> ps = new ArrayList<List<Posting>>();
+				String[] tokens = query.split(StringPool.SPACE);
+				String[] tokenParts;
+				String indexType, term;
+				PostingsList postingList;
+				for(String token: tokens) {
+					if(isOperator(token)) {
+						operatorList.add(token);
+					} else {
+						// TODO use pattern matcher
+						if(token.contains(StringPool.LESS_THAN)) {
+							token = token.replaceAll(StringPool.LESS_THAN, StringPool.BLANK);
+							token = token.replaceAll(StringPool.GREATER_THAN, StringPool.BLANK);
+							operatorList.remove(operatorList.size() - 1);
+							operatorList.add(Constants.NOT);
 						}
-						if(postingList != null)
-							ps.add(postingList.getPostingsList());
-						else
-							ps.add(new ArrayList<Posting>());
+						tokenParts = token.split(StringPool.COLON);
+						if(tokenParts.length == 2) {
+							indexType = tokenParts[0];
+							term = tokenParts[1];
+							ts = whiteSpaceTokenizer.consume(term);
+							if(indexType.equalsIgnoreCase(IndexType.AUTHOR.toString())) {
+								authorAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.AUTHOR, ts);
+								ts = authorAnalyzer.getStream();
+								authorAnalyzer.increment();
+								if(ts.getCurrent() != null)
+									postingList = authorIndexReader.getPostingsList(ts.getCurrent().toString());
+								else
+									postingList = authorIndexReader.getPostingsList(term);
+							} else if(indexType.equalsIgnoreCase(IndexType.CATEGORY.toString())) {
+								postingList = categoryIndexReader.getPostingsList(term);
+							} else if(indexType.equalsIgnoreCase(IndexType.PLACE.toString())) {
+								placeAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.PLACE, ts);
+								ts = placeAnalyzer.getStream();
+								placeAnalyzer.increment();
+								if(ts.getCurrent() != null)
+									postingList = placeIndexReader.getPostingsList(ts.getCurrent().toString());
+								else
+									postingList = placeIndexReader.getPostingsList(term);
+							} else {
+								termAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.CONTENT, ts);
+								ts = termAnalyzer.getStream();
+								termAnalyzer.increment();
+								if(ts.getCurrent() != null)
+									postingList = termIndexReader.getPostingsList(ts.getCurrent().toString());
+								else
+									postingList = termIndexReader.getPostingsList(term);
+							}
+							if(postingList != null)
+								ps.add(postingList.getPostingsList());
+							else
+								ps.add(new ArrayList<Posting>());
+						}
 					}
 				}
+				
+				resultList = getPostingsIntersection(ps, operatorList);
+				return resultList;
 			}
-			
-			resultList = getPostingsIntersection(ps, operatorList);
-			return resultList;
-		}
-		else {
-			//recursion
-			List<Posting> resultList;
-			List<String> operatorList = new ArrayList<String>();
-			List<List<Posting>> ps = new ArrayList<List<Posting>>();
-			String[] tokens, tokenParts;
-			String indexType, term;
-			PostingsList postingList;
-			int indexOfOpenSquareBracket = query.indexOf(StringPool.OPEN_SQUARE_BRACKETS);
-			int startIndex = 0;
-			do {
-				// add the terms before the square bracket (if present)
-				String sub1 = query.substring(startIndex, indexOfOpenSquareBracket);
-				sub1 = sub1.trim();
-				if(!sub1.isEmpty()) {
-					tokens = sub1.split(StringPool.SPACE);
+			else {
+				//recursion
+				List<Posting> resultList;
+				List<String> operatorList = new ArrayList<String>();
+				List<List<Posting>> ps = new ArrayList<List<Posting>>();
+				String[] tokens, tokenParts;
+				String indexType, term;
+				PostingsList postingList;
+				int indexOfOpenSquareBracket = query.indexOf(StringPool.OPEN_SQUARE_BRACKETS);
+				int startIndex = 0;
+				do {
+					// add the terms before the square bracket (if present)
+					String sub1 = query.substring(startIndex, indexOfOpenSquareBracket);
+					sub1 = sub1.trim();
+					if(!sub1.isEmpty()) {
+						tokens = sub1.split(StringPool.SPACE);
+						for(String token: tokens) {
+							if(isOperator(token)) {
+								operatorList.add(token);
+							} else {
+								if(token.contains(StringPool.LESS_THAN)) {
+									token = token.replaceAll(StringPool.LESS_THAN, StringPool.BLANK);
+									token = token.replaceAll(StringPool.GREATER_THAN, StringPool.BLANK);
+									operatorList.remove(operatorList.size() - 1);
+									operatorList.add(Constants.NOT);
+								}
+								tokenParts = token.split(StringPool.COLON);
+								if(tokenParts.length == 2) {
+									indexType = tokenParts[0];
+									term = tokenParts[1];
+									ts = whiteSpaceTokenizer.consume(term);
+									if(indexType.equalsIgnoreCase(IndexType.AUTHOR.toString())) {
+										authorAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.AUTHOR, ts);
+										ts = authorAnalyzer.getStream();
+										authorAnalyzer.increment();
+										if(ts.getCurrent() != null)
+											postingList = authorIndexReader.getPostingsList(ts.getCurrent().toString());
+										else
+											postingList = authorIndexReader.getPostingsList(term);
+									} else if(indexType.equalsIgnoreCase(IndexType.CATEGORY.toString())) {
+										postingList = categoryIndexReader.getPostingsList(term);
+									} else if(indexType.equalsIgnoreCase(IndexType.PLACE.toString())) {
+										placeAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.PLACE, ts);
+										ts = placeAnalyzer.getStream();
+										placeAnalyzer.increment();
+										if(ts.getCurrent() != null)
+											postingList = placeIndexReader.getPostingsList(ts.getCurrent().toString());
+										else
+											postingList = placeIndexReader.getPostingsList(term);
+									} else {
+										termAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.CONTENT, ts);
+										ts = termAnalyzer.getStream();
+										termAnalyzer.increment();
+										if(ts.getCurrent() != null)
+											postingList = termIndexReader.getPostingsList(ts.getCurrent().toString());
+										else
+											postingList = termIndexReader.getPostingsList(term);
+									}
+									if(postingList != null)
+										ps.add(postingList.getPostingsList());
+									else
+										ps.add(new ArrayList<Posting>());
+								}
+							}
+						}
+					}
+					
+					// add everything inside this pair of square bracket by using recursion
+					int openBr = 0;
+					int i = indexOfOpenSquareBracket;
+					do {
+						char ch = query.charAt(i);
+						if(ch == '[') {
+							openBr++;
+						} else if(ch == ']') {
+							openBr--;
+						}
+						i++;
+					} while (openBr != 0);
+					
+					String queryWithinSquareBracket = query.substring(indexOfOpenSquareBracket + 2, i - 2);
+					List<Posting> posList = getResult(queryWithinSquareBracket);
+					ps.add(posList);
+					indexOfOpenSquareBracket = query.indexOf(StringPool.OPEN_SQUARE_BRACKETS, i+2);
+					startIndex = i;
+				} while (indexOfOpenSquareBracket != -1);
+				
+				// add the terms after the square bracket (if present);
+				String sub2 = query.substring(startIndex);
+				sub2 = sub2.trim();
+				if(!sub2.isEmpty()) {
+					tokens = sub2.split(StringPool.SPACE);
 					for(String token: tokens) {
 						if(isOperator(token)) {
 							operatorList.add(token);
@@ -100,14 +211,33 @@ public class QueryUtil {
 							if(tokenParts.length == 2) {
 								indexType = tokenParts[0];
 								term = tokenParts[1];
+								ts = whiteSpaceTokenizer.consume(term);
 								if(indexType.equalsIgnoreCase(IndexType.AUTHOR.toString())) {
-									postingList  = authorIndexReader.getPostingsList(term);
+									authorAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.AUTHOR, ts);
+									ts = authorAnalyzer.getStream();
+									authorAnalyzer.increment();
+									if(ts.getCurrent() != null)
+										postingList = authorIndexReader.getPostingsList(ts.getCurrent().toString());
+									else
+										postingList = authorIndexReader.getPostingsList(term);
 								} else if(indexType.equalsIgnoreCase(IndexType.CATEGORY.toString())) {
 									postingList = categoryIndexReader.getPostingsList(term);
 								} else if(indexType.equalsIgnoreCase(IndexType.PLACE.toString())) {
-									postingList = placeIndexReader.getPostingsList(term);
+									placeAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.PLACE, ts);
+									ts = placeAnalyzer.getStream();
+									placeAnalyzer.increment();
+									if(ts.getCurrent() != null)
+										postingList = placeIndexReader.getPostingsList(ts.getCurrent().toString());
+									else
+										postingList = placeIndexReader.getPostingsList(term);
 								} else {
-									postingList = termIndexReader.getPostingsList(term);
+									termAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.CONTENT, ts);
+									ts = termAnalyzer.getStream();
+									termAnalyzer.increment();
+									if(ts.getCurrent() != null)
+										postingList = termIndexReader.getPostingsList(ts.getCurrent().toString());
+									else
+										postingList = termIndexReader.getPostingsList(term);
 								}
 								if(postingList != null)
 									ps.add(postingList.getPostingsList());
@@ -118,65 +248,12 @@ public class QueryUtil {
 					}
 				}
 				
-				// add everything inside this pair of square bracket by using recursion
-				int openBr = 0;
-				int i = indexOfOpenSquareBracket;
-				do {
-					char ch = query.charAt(i);
-					if(ch == '[') {
-						openBr++;
-					} else if(ch == ']') {
-						openBr--;
-					}
-					i++;
-				} while (openBr != 0);
-				
-				String queryWithinSquareBracket = query.substring(indexOfOpenSquareBracket + 2, i - 2);
-				List<Posting> posList = getResult(queryWithinSquareBracket);
-				ps.add(posList);
-				indexOfOpenSquareBracket = query.indexOf(StringPool.OPEN_SQUARE_BRACKETS, i+2);
-				startIndex = i;
-			} while (indexOfOpenSquareBracket != -1);
-			
-			// add the terms after the square bracket (if present);
-			String sub2 = query.substring(startIndex);
-			sub2 = sub2.trim();
-			if(!sub2.isEmpty()) {
-				tokens = sub2.split(StringPool.SPACE);
-				for(String token: tokens) {
-					if(isOperator(token)) {
-						operatorList.add(token);
-					} else {
-						if(token.contains(StringPool.LESS_THAN)) {
-							token = token.replaceAll(StringPool.LESS_THAN, StringPool.BLANK);
-							token = token.replaceAll(StringPool.GREATER_THAN, StringPool.BLANK);
-							operatorList.remove(operatorList.size() - 1);
-							operatorList.add(Constants.NOT);
-						}
-						tokenParts = token.split(StringPool.COLON);
-						if(tokenParts.length == 2) {
-							indexType = tokenParts[0];
-							term = tokenParts[1];
-							if(indexType.equalsIgnoreCase(IndexType.AUTHOR.toString())) {
-								postingList  = authorIndexReader.getPostingsList(term);
-							} else if(indexType.equalsIgnoreCase(IndexType.CATEGORY.toString())) {
-								postingList = categoryIndexReader.getPostingsList(term);
-							} else if(indexType.equalsIgnoreCase(IndexType.PLACE.toString())) {
-								postingList = placeIndexReader.getPostingsList(term);
-							} else {
-								postingList = termIndexReader.getPostingsList(term);
-							}
-							if(postingList != null)
-								ps.add(postingList.getPostingsList());
-							else
-								ps.add(new ArrayList<Posting>());
-						}
-					}
-				}
+				resultList = getPostingsIntersection(ps, operatorList);
+				return resultList;
 			}
-			
-			resultList = getPostingsIntersection(ps, operatorList);
-			return resultList;
+		} catch(Exception e) {
+			e.printStackTrace();
+			return new ArrayList<Posting>();
 		}
 	}
 	
@@ -210,9 +287,11 @@ public class QueryUtil {
 			if(pos.getDocFrequencyList() == null) {
 				resultPosting.addDocFrequency(firstTermPostings.size());
 				resultPosting.addTermFrequency(pos.getFrequency());
+				resultPosting.addPositionList(pos.getPositions());
 			} else {
 				resultPosting.setDocFrequencyList(pos.getDocFrequencyList());
 				resultPosting.setTermFrequencyList(pos.getTermFrequencyList());
+				resultPosting.setPositionList(pos.getPostionList());
 			}
 			resultList.add(resultPosting);
 		}
@@ -250,6 +329,7 @@ public class QueryUtil {
 			if(aPosting.getDocId() == bPosting.getDocId()) {
 				aPosting.addDocFrequency(b.size());
 				aPosting.addTermFrequency(bPosting.getFrequency());
+				aPosting.addPositionList(bPosting.getPositions());
 				resultList.add(aPosting);
 				i++;
 				j++;
@@ -288,6 +368,7 @@ public class QueryUtil {
 			if(aDocId == bDocId) {
 				aPosting.addDocFrequency(b.size());
 				aPosting.addTermFrequency(bPosting.getFrequency());
+				aPosting.addPositionList(bPosting.getPositions());
 				resultList.add(aPosting);
 				i++;
 				j++;
@@ -300,9 +381,11 @@ public class QueryUtil {
 				if(bPosting.getDocFrequencyList() != null) {
 					newPosting.setDocFrequencyList(bPosting.getDocFrequencyList());
 					newPosting.setTermFrequencyList(bPosting.getTermFrequencyList());
+					newPosting.setPositionList(bPosting.getPostionList());
 				} else {
 					newPosting.addDocFrequency(b.size());
 					newPosting.addTermFrequency(bPosting.getFrequency());
+					newPosting.addPositionList(bPosting.getPositions());
 				}
 				resultList.add(newPosting);
 			}
@@ -318,9 +401,11 @@ public class QueryUtil {
 			if(bPosting.getDocFrequencyList() != null) {
 				newPosting.setDocFrequencyList(bPosting.getDocFrequencyList());
 				newPosting.setTermFrequencyList(bPosting.getTermFrequencyList());
+				newPosting.setPositionList(bPosting.getPostionList());
 			} else {
 				newPosting.addDocFrequency(b.size());
 				newPosting.addTermFrequency(bPosting.getFrequency());
+				newPosting.addPositionList(bPosting.getPositions());
 			}
 			resultList.add(newPosting);
 		}
