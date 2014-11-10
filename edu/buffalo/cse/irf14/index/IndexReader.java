@@ -15,10 +15,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.hamcrest.core.IsEqual;
 
 import edu.buffalo.cse.irf14.dictionary.AuthorDictionary;
 import edu.buffalo.cse.irf14.dictionary.CategoryDictionary;
@@ -41,6 +39,7 @@ public class IndexReader {
 	private Map<Integer, PostingsList> index;
 	private Map<String, Integer> dictionary;
 	private Map<Integer, String> reverseDictionary;
+	private Map<Integer, Integer> docLengthMap;
 	
 	// TODO remove this method
 	public Map<Integer, PostingsList> getTermIndex() {
@@ -59,8 +58,13 @@ public class IndexReader {
 		rootIndexDir = indexDir;
 		indexType = type.toString().toLowerCase();
 		try {
+			
+			if(File.separator.charAt(0) != rootIndexDir.charAt(rootIndexDir.length() - 1)) {
+				rootIndexDir = rootIndexDir + File.separator;
+			}
+			
 			// read the index
-			FileInputStream fileInStream= new FileInputStream(rootIndexDir + File.separator + indexType + File.separator + indexType);
+			FileInputStream fileInStream= new FileInputStream(rootIndexDir + indexType + File.separator + indexType);
 			BufferedInputStream bufferedInStream = new BufferedInputStream(fileInStream);
 			ObjectInputStream objectInStream = new ObjectInputStream(bufferedInStream);
 			index = (HashMap<Integer, PostingsList>) objectInStream.readObject();
@@ -68,7 +72,7 @@ public class IndexReader {
 			fileInStream.close();
 			
 			// read the dictionary associated with this index
-			fileInStream = new FileInputStream(rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + indexType);
+			fileInStream = new FileInputStream(rootIndexDir + Constants.DICTIONARY + File.separator + indexType);
 			bufferedInStream = new BufferedInputStream(fileInStream);
 			objectInStream = new ObjectInputStream(bufferedInStream);
 			dictionary = (Map<String, Integer>) objectInStream.readObject();
@@ -85,7 +89,7 @@ public class IndexReader {
 			fileInStream.close();
 			
 			// read the reverse dictionary associated with this index
-			fileInStream = new FileInputStream(rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + indexType);
+			fileInStream = new FileInputStream(rootIndexDir + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + indexType);
 			bufferedInStream = new BufferedInputStream(fileInStream);
 			objectInStream = new ObjectInputStream(bufferedInStream);
 			reverseDictionary = (Map<Integer, String>) objectInStream.readObject();
@@ -102,7 +106,7 @@ public class IndexReader {
 			fileInStream.close();
 			
 			// read the document dictionary
-			fileInStream = new FileInputStream(rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + Constants.DOCUMENT);
+			fileInStream = new FileInputStream(rootIndexDir + Constants.DICTIONARY + File.separator + Constants.DOCUMENT);
 			bufferedInStream = new BufferedInputStream(fileInStream);
 			objectInStream = new ObjectInputStream(bufferedInStream);
 			dictionary = (Map<String, Integer>) objectInStream.readObject();
@@ -111,11 +115,20 @@ public class IndexReader {
 			fileInStream.close();
 			
 			// read the reverse document dictionary
-			fileInStream = new FileInputStream(rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + Constants.DOCUMENT);
+			fileInStream = new FileInputStream(rootIndexDir + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + Constants.DOCUMENT);
 			bufferedInStream = new BufferedInputStream(fileInStream);
 			objectInStream = new ObjectInputStream(bufferedInStream);
 			reverseDictionary = (Map<Integer, String>) objectInStream.readObject();
 			DocumentDictionary.setReverseDictionary(reverseDictionary);
+			objectInStream.close(); 
+			fileInStream.close();
+			
+			// read the document length map
+			fileInStream = new FileInputStream(rootIndexDir + Constants.DICTIONARY + File.separator + Constants.DOCUMENT_LENGTH_DICTIONARY);
+			bufferedInStream = new BufferedInputStream(fileInStream);
+			objectInStream = new ObjectInputStream(bufferedInStream);
+			docLengthMap = (Map<Integer, Integer>) objectInStream.readObject();
+			DocumentDictionary.setDocumentLengthMap(docLengthMap);
 			objectInStream.close(); 
 			fileInStream.close();
 			
@@ -395,13 +408,20 @@ public class IndexReader {
 			return null;
 		}
 		
-		return index.get(termId);
+		PostingsList resultList = index.get(termId);
+		if(resultList != null && !indexType.equals(IndexType.TERM.toString().toLowerCase())) {
+			List<Posting> ps = resultList.getPostingsList();
+			for(Posting p: ps) {
+				p.setRelevancyScore(1);
+			}
+		}
+		
+		return resultList;
 	}
 	
 	public List<String> getQueryTerms(String s) {
 		
 		Pattern pattern = Pattern.compile(s);
-		Matcher matcher;
 		List<String> matchedTerms = new ArrayList<String>();
 		
 		for(String term: TermDictionary.getDictionary().keySet()) {

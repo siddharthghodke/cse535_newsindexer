@@ -23,10 +23,10 @@ public class ContentAnalyzer implements Analyzer {
 
 			filter = tff.getFilterByType(TokenFilterType.NUMERIC, filter.getStream());
 			while(filter.increment());
-
+			/*
 			filter = tff.getFilterByType(TokenFilterType.STEMMER, filter.getStream());
 			while(filter.increment());
-			
+			*/
 			filter = tff.getFilterByType(TokenFilterType.CAPITALIZATION, filter.getStream());
 			while(filter.increment());
 

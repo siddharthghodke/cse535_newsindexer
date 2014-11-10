@@ -1,18 +1,31 @@
 package edu.buffalo.cse.irf14.query;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
+import edu.buffalo.cse.irf14.SearchRunner.ScoringModel;
 import edu.buffalo.cse.irf14.analysis.Analyzer;
 import edu.buffalo.cse.irf14.analysis.AnalyzerFactory;
 import edu.buffalo.cse.irf14.analysis.TokenStream;
 import edu.buffalo.cse.irf14.analysis.Tokenizer;
+import edu.buffalo.cse.irf14.dictionary.TermDictionary;
 import edu.buffalo.cse.irf14.document.FieldNames;
 import edu.buffalo.cse.irf14.document.Posting;
 import edu.buffalo.cse.irf14.document.PostingsList;
 import edu.buffalo.cse.irf14.index.IndexReader;
 import edu.buffalo.cse.irf14.index.IndexType;
 import edu.buffalo.cse.irf14.util.Constants;
+import edu.buffalo.cse.irf14.util.ResultDocument;
 import edu.buffalo.cse.irf14.util.StringPool;
 
 public class QueryUtil {
@@ -21,13 +34,12 @@ public class QueryUtil {
 	static IndexReader categoryIndexReader;
 	static IndexReader authorIndexReader;
 	static IndexReader placeIndexReader;
-	Analyzer termAnalyzer, authorAnalyzer, categoryAnalyzer, placeAnalyzer;
-	AnalyzerFactory analyzerFactory;
-	Tokenizer whiteSpaceTokenizer;
-	TokenStream ts;
+	static AnalyzerFactory analyzerFactory;
+	static Tokenizer whiteSpaceTokenizer;
 	
 	static {
-		
+		whiteSpaceTokenizer = new Tokenizer();
+		analyzerFactory = AnalyzerFactory.getInstance();		
 	}
 	
 	public QueryUtil(String indexDir) {
@@ -35,12 +47,11 @@ public class QueryUtil {
 		categoryIndexReader = new IndexReader(indexDir, IndexType.CATEGORY);
 		authorIndexReader = new IndexReader(indexDir, IndexType.AUTHOR);
 		placeIndexReader = new IndexReader(indexDir, IndexType.PLACE);
-		whiteSpaceTokenizer = new Tokenizer();
-		analyzerFactory = AnalyzerFactory.getInstance();
 	}
 	
 	public List<Posting> getResult(String query) {
-		
+		TokenStream ts;
+		Analyzer termAnalyzer, authorAnalyzer, placeAnalyzer;
 		try {
 			// base case
 			if(!query.contains(StringPool.OPEN_SQUARE_BRACKETS)) {
@@ -55,6 +66,7 @@ public class QueryUtil {
 					if(isOperator(token)) {
 						operatorList.add(token);
 					} else {
+						token = token.replaceAll(StringPool.DOUBLE_QUOTES, StringPool.BLANK);
 						// TODO use pattern matcher
 						if(token.contains(StringPool.LESS_THAN)) {
 							token = token.replaceAll(StringPool.LESS_THAN, StringPool.BLANK);
@@ -94,11 +106,21 @@ public class QueryUtil {
 								else
 									postingList = termIndexReader.getPostingsList(term);
 							}
-							if(postingList != null)
-								ps.add(postingList.getPostingsList());
+						} else {
+							operatorList.add(Constants.OR);
+							ts = whiteSpaceTokenizer.consume(tokenParts[0]);
+							termAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.CONTENT, ts);
+							ts = termAnalyzer.getStream();
+							termAnalyzer.increment();
+							if(ts.getCurrent() != null)
+								postingList = termIndexReader.getPostingsList(ts.getCurrent().toString());
 							else
-								ps.add(new ArrayList<Posting>());
+								postingList = termIndexReader.getPostingsList(tokenParts[1]);	
 						}
+						if(postingList != null)
+							ps.add(postingList.getPostingsList());
+						else
+							ps.add(new ArrayList<Posting>());
 					}
 				}
 				
@@ -125,6 +147,7 @@ public class QueryUtil {
 							if(isOperator(token)) {
 								operatorList.add(token);
 							} else {
+								token = token.replaceAll(StringPool.DOUBLE_QUOTES, StringPool.BLANK);
 								if(token.contains(StringPool.LESS_THAN)) {
 									token = token.replaceAll(StringPool.LESS_THAN, StringPool.BLANK);
 									token = token.replaceAll(StringPool.GREATER_THAN, StringPool.BLANK);
@@ -163,11 +186,21 @@ public class QueryUtil {
 										else
 											postingList = termIndexReader.getPostingsList(term);
 									}
-									if(postingList != null)
-										ps.add(postingList.getPostingsList());
+								} else {
+									operatorList.add(Constants.OR);
+									ts = whiteSpaceTokenizer.consume(tokenParts[0]);
+									termAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.CONTENT, ts);
+									ts = termAnalyzer.getStream();
+									termAnalyzer.increment();
+									if(ts.getCurrent() != null)
+										postingList = termIndexReader.getPostingsList(ts.getCurrent().toString());
 									else
-										ps.add(new ArrayList<Posting>());
+										postingList = termIndexReader.getPostingsList(tokenParts[1]);	
 								}
+								if(postingList != null)
+									ps.add(postingList.getPostingsList());
+								else
+									ps.add(new ArrayList<Posting>());
 							}
 						}
 					}
@@ -201,6 +234,7 @@ public class QueryUtil {
 						if(isOperator(token)) {
 							operatorList.add(token);
 						} else {
+							token = token.replaceAll(StringPool.DOUBLE_QUOTES, StringPool.BLANK);
 							if(token.contains(StringPool.LESS_THAN)) {
 								token = token.replaceAll(StringPool.LESS_THAN, StringPool.BLANK);
 								token = token.replaceAll(StringPool.GREATER_THAN, StringPool.BLANK);
@@ -239,11 +273,21 @@ public class QueryUtil {
 									else
 										postingList = termIndexReader.getPostingsList(term);
 								}
-								if(postingList != null)
-									ps.add(postingList.getPostingsList());
+							} else {
+								operatorList.add(Constants.OR);
+								ts = whiteSpaceTokenizer.consume(tokenParts[0]);
+								termAnalyzer = analyzerFactory.getAnalyzerForField(FieldNames.CONTENT, ts);
+								ts = termAnalyzer.getStream();
+								termAnalyzer.increment();
+								if(ts.getCurrent() != null)
+									postingList = termIndexReader.getPostingsList(ts.getCurrent().toString());
 								else
-									ps.add(new ArrayList<Posting>());
+									postingList = termIndexReader.getPostingsList(tokenParts[1]);	
 							}
+							if(postingList != null)
+								ps.add(postingList.getPostingsList());
+							else
+								ps.add(new ArrayList<Posting>());
 						}
 					}
 				}
@@ -259,7 +303,7 @@ public class QueryUtil {
 	
 	
 
-	public List<Posting> getPostingsIntersection(List<List<Posting>> ps, List<String> operators) {
+	private static List<Posting> getPostingsIntersection(List<List<Posting>> ps, List<String> operators) {
 		if(ps == null || operators == null) {
 			return null;
 		}
@@ -269,31 +313,32 @@ public class QueryUtil {
 		if(ps.size() == 0) {
 			return null;
 		}
-		if(ps.size() == 1) {
-			return ps.get(0);
-		}
 		
 		int i = 0;
 		List<Posting> resultList = new ArrayList<Posting>();
 		List<Posting> firstTermPostings = ps.get(0);
 		Posting resultPosting;
 		
-		/* calculate the tf and df for postings of first term, 
+		/* 
+		 * calculate the tf and df for postings of first term, 
 		 * and update it in its postings
 		 * And then add the updated list to the resultList
 		 */
 		for(Posting pos: firstTermPostings) {
 			resultPosting = new Posting(pos);
-			if(pos.getDocFrequencyList() == null) {
+			if(pos.getDocFrequencyList() != null) {
+				resultPosting.setDocFrequencyList(pos.getDocFrequencyList());
+				resultPosting.setTermFrequencyList(pos.getTermFrequencyList());
+				resultPosting.setPositionList(pos.getPostionList());				
+			} else {
 				resultPosting.addDocFrequency(firstTermPostings.size());
 				resultPosting.addTermFrequency(pos.getFrequency());
 				resultPosting.addPositionList(pos.getPositions());
-			} else {
-				resultPosting.setDocFrequencyList(pos.getDocFrequencyList());
-				resultPosting.setTermFrequencyList(pos.getTermFrequencyList());
-				resultPosting.setPositionList(pos.getPostionList());
 			}
 			resultList.add(resultPosting);
+		}
+		if(ps.size() == 1) {
+			return resultList;
 		}
 		
 		while(i+1 < ps.size()) {
@@ -309,7 +354,7 @@ public class QueryUtil {
 		return resultList;
 	}
 	
-	private List<Posting> postingsAND(List<Posting> a, List<Posting> b) {
+	private static List<Posting> postingsAND(List<Posting> a, List<Posting> b) {
 		if(a == null || b == null) {
 			return null;
 		}
@@ -319,7 +364,7 @@ public class QueryUtil {
 		}
 		
 		List<Posting> resultList = new ArrayList<Posting>();
-		Posting aPosting, bPosting;
+		Posting aPosting, bPosting, newPosting;
 		
 		int i = 0, j = 0;
 		while(i < a.size() && j < b.size()) {
@@ -327,10 +372,22 @@ public class QueryUtil {
 			bPosting = b.get(j);
 			
 			if(aPosting.getDocId() == bPosting.getDocId()) {
-				aPosting.addDocFrequency(b.size());
-				aPosting.addTermFrequency(bPosting.getFrequency());
-				aPosting.addPositionList(bPosting.getPositions());
-				resultList.add(aPosting);
+				newPosting = new Posting(aPosting);
+				
+				if(bPosting.getDocFrequencyList() != null) {
+					newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+					newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), false);
+					newPosting.appendPositionList(bPosting.getPostionList(), false);
+				} else {
+					newPosting.addDocFrequency(b.size());
+					newPosting.addTermFrequency(bPosting.getFrequency());
+					newPosting.addPositionList(bPosting.getPositions());
+				}
+				
+				if(newPosting.getRelevancyScore() != 1d) {
+					newPosting.setRelevancyScore(aPosting.getRelevancyScore() + bPosting.getRelevancyScore());
+				}
+				resultList.add(newPosting);
 				i++;
 				j++;
 			} else if(aPosting.getDocId() < bPosting.getDocId()) {
@@ -342,22 +399,46 @@ public class QueryUtil {
 		return resultList;
 	}
 	
-	private List<Posting> postingsOR(List<Posting> a, List<Posting> b) {
+	private static List<Posting> postingsOR(List<Posting> a, List<Posting> b) {
 		if(a == null || b == null) {
 			return null;
 		}
 		
+		List<Posting> resultList = new ArrayList<Posting>();
+		
+		if(a.size() == 0 && b.size() == 0) {
+			return resultList;
+		}
+
+		Posting newPosting;
 		if(a.size() == 0) {
-			return b;
+			for(Posting pos: b) {
+				newPosting = new Posting(pos);
+				if(pos.getDocFrequencyList() == null) {
+					newPosting.addDocFrequency(b.size());
+					newPosting.addTermFrequency(pos.getFrequency());
+					newPosting.addPositionList(pos.getPositions());
+				}
+				resultList.add(newPosting);
+			}
+			return resultList;
 		}
 		if(b.size() == 0) {
-			return a;
+			for(Posting pos: a) {
+				newPosting = new Posting(pos);
+				if(pos.getDocFrequencyList() == null) {
+					newPosting.addDocFrequency(a.size());
+					newPosting.addTermFrequency(pos.getFrequency());
+					newPosting.addPositionList(pos.getPositions());
+				}
+				resultList.add(newPosting);
+			}
+			return resultList;
 		}
 		
-		System.out.println(a.size() + StringPool.SPACE + b.size());
-		List<Posting> resultList = new ArrayList<Posting>();
-		Posting aPosting, bPosting, newPosting;
-		
+		Posting aPosting, bPosting;
+		aPosting = a.get(0);
+		bPosting = b.get(0);
 		int i = 0, j = 0;
 		while(i < a.size() && j < b.size()) {
 			aPosting = a.get(i);
@@ -366,42 +447,79 @@ public class QueryUtil {
 			int bDocId = bPosting.getDocId();
 			
 			if(aDocId == bDocId) {
-				aPosting.addDocFrequency(b.size());
-				aPosting.addTermFrequency(bPosting.getFrequency());
-				aPosting.addPositionList(bPosting.getPositions());
-				resultList.add(aPosting);
-				i++;
-				j++;
-			} else if(aDocId < bDocId) {
-				i++;
-				resultList.add(aPosting);
-			} else {
-				j++;
-				newPosting = new Posting(bPosting);
+				newPosting = new Posting(aPosting);
 				if(bPosting.getDocFrequencyList() != null) {
-					newPosting.setDocFrequencyList(bPosting.getDocFrequencyList());
-					newPosting.setTermFrequencyList(bPosting.getTermFrequencyList());
-					newPosting.setPositionList(bPosting.getPostionList());
+					newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+					newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), false);
+					newPosting.appendPositionList(bPosting.getPostionList(), false);
 				} else {
 					newPosting.addDocFrequency(b.size());
 					newPosting.addTermFrequency(bPosting.getFrequency());
 					newPosting.addPositionList(bPosting.getPositions());
 				}
+				if(newPosting.getRelevancyScore() != 1d) {
+					newPosting.setRelevancyScore(aPosting.getRelevancyScore() + bPosting.getRelevancyScore());
+				}
+				i++;
+				j++;
+				resultList.add(newPosting);
+			} else if(aDocId < bDocId) {
+				i++;
+				newPosting = new Posting(aPosting);
+				
+				if(bPosting.getDocFrequencyList() != null) {
+					newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+					newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), true);
+					newPosting.appendPositionList(bPosting.getPostionList(), true);
+				} else {
+					newPosting.addDocFrequency(b.size());
+					newPosting.addTermFrequency(0);
+					newPosting.addPositionList(new ArrayList<Integer>());
+				}
+				resultList.add(newPosting);
+			} else {
+				j++;
+				newPosting = new Posting(aPosting);
+				newPosting.setDocId(bDocId);
+				newPosting.resetTermFrequencyList();
+				if(bPosting.getDocFrequencyList() != null) {
+					newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+					newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), false);
+					newPosting.appendPositionList(bPosting.getPostionList(), false);
+				} else {
+					newPosting.addDocFrequency(b.size());
+					newPosting.addTermFrequency(bPosting.getFrequency());
+					newPosting.addPositionList(bPosting.getPositions());
+				}
+				newPosting.setRelevancyScore(bPosting.getRelevancyScore());
 				resultList.add(newPosting);
 			}
 		}
 		
 		while(i < a.size()) {
 			aPosting = a.get(i++);
+			newPosting = new Posting(aPosting);
+			
+			if(bPosting.getDocFrequencyList() != null) {
+				newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+				newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), true);
+				newPosting.appendPositionList(bPosting.getPostionList(), true);
+			} else {
+				newPosting.addDocFrequency(b.size());
+				newPosting.addTermFrequency(0);
+				newPosting.addPositionList(new ArrayList<Integer>());
+			}
 			resultList.add(aPosting);
 		}
 		while(j < b.size()) {
 			bPosting = b.get(j++);
-			newPosting = new Posting(bPosting);
+			newPosting = new Posting(aPosting);
+			newPosting.setDocId(bPosting.getDocId());
+			newPosting.resetTermFrequencyList();
 			if(bPosting.getDocFrequencyList() != null) {
-				newPosting.setDocFrequencyList(bPosting.getDocFrequencyList());
-				newPosting.setTermFrequencyList(bPosting.getTermFrequencyList());
-				newPosting.setPositionList(bPosting.getPostionList());
+				newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+				newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), false);
+				newPosting.appendPositionList(bPosting.getPostionList(), false);
 			} else {
 				newPosting.addDocFrequency(b.size());
 				newPosting.addTermFrequency(bPosting.getFrequency());
@@ -413,7 +531,7 @@ public class QueryUtil {
 		return resultList;
 	}
 	
-	private List<Posting> postingsNOT(List<Posting> a, List<Posting> b) {
+	private static List<Posting> postingsNOT(List<Posting> a, List<Posting> b) {
 		if(a == null || b == null) {
 			return null;
 		}
@@ -426,7 +544,8 @@ public class QueryUtil {
 		}
 		
 		List<Posting> resultList = new ArrayList<Posting>();
-		Posting aPosting, bPosting;
+		Posting aPosting, bPosting, newPosting;
+		bPosting = b.get(0);
 		
 		int i = 0, j = 0;
 		while(i < a.size() && j < b.size()) {
@@ -439,7 +558,18 @@ public class QueryUtil {
 				continue;
 			} else if(aPosting.getDocId() < bPosting.getDocId()) {
 				i++;
-				resultList.add(aPosting);
+				newPosting = new Posting(aPosting);
+				
+				if(bPosting.getDocFrequencyList() != null) {
+					newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+					newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), true);
+					newPosting.appendPositionList(bPosting.getPostionList(), true);
+				} else {
+					newPosting.addDocFrequency(b.size());
+					newPosting.addTermFrequency(0);
+					newPosting.addPositionList(new ArrayList<Integer>());
+				}
+				resultList.add(newPosting);
 			} else {
 				j++;
 			}
@@ -447,6 +577,17 @@ public class QueryUtil {
 		
 		while(i < a.size()) {
 			aPosting = a.get(i++);
+			newPosting = new Posting(aPosting);
+			
+			if(bPosting.getDocFrequencyList() != null) {
+				newPosting.appendDocFrequencyList(bPosting.getDocFrequencyList());
+				newPosting.appendTermFrequencyList(bPosting.getTermFrequencyList(), true);
+				newPosting.appendPositionList(bPosting.getPostionList(), true);
+			} else {
+				newPosting.addDocFrequency(b.size());
+				newPosting.addTermFrequency(0);
+				newPosting.addPositionList(new ArrayList<Integer>());
+			}
 			resultList.add(aPosting);
 		}
 		return resultList;
@@ -458,6 +599,105 @@ public class QueryUtil {
 			return true;
 		}
 		return false;
+	}
+	
+	public Map<String, List<String>> getQueryTerms(String term) {
+		
+		String newTerm = term.replaceAll("\\*", ".*");
+		newTerm = newTerm.replaceAll("\\?", ".?");
+		//Pattern pattern = Pattern.compile(term);
+		
+		Map<String, List<String>> resultMap;
+		List<String> expansionTerms = new ArrayList<String>();
+		
+		//String[] termDictionary = new String[]{"mln", "mla", "mleaesa", "msqla"};
+		Set<String> termDictionary = TermDictionary.getDictionary().keySet();
+		
+		for(String dictTerm: termDictionary) {
+			if(Pattern.matches(newTerm, dictTerm)) {
+				expansionTerms.add(dictTerm);
+			}
+		}
+		
+		if(expansionTerms.size() > 0) {
+			resultMap = new HashMap<String, List<String>>();
+			resultMap.put(term, expansionTerms);
+			return resultMap;
+		}
+		
+		return null;
+		
+	}
+	
+	public void generateResultsInEvalMode(File file, PrintStream stream, String indexDir, String corpusDir) {
+		
+		try {
+			//File outFile = new File("/home/IR/phase2/queryOutput");
+			BufferedReader br = new BufferedReader(new FileReader(file));
+			//BufferedOutputStream bout = new BufferedOutputStream(new FileOutputStream(outFile));
+			//writer = new PrintWriter(outFile);
+			String line = br.readLine();
+			String queryId, queryString;
+			Query query;
+			List<ResultDocument> results;
+			int numOfResults = 0;
+			
+			int numberOfQueries = Integer.parseInt(line.split("numQueries=")[1]);
+			StringBuilder queryResult = new StringBuilder();
+			for(int i=0; i<numberOfQueries; i++) {
+				line = br.readLine();
+				String[] parts = line.split(StringPool.COLON);
+				if(parts.length < 2) {
+					br.close();
+					return;
+				}
+				queryId = parts[0];
+				queryString = parts[1];
+				queryString = queryString.replaceAll("\\{", StringPool.BLANK);
+				queryString = queryString.replaceAll("\\}", StringPool.BLANK);
+				queryString = queryString.trim();
+				
+				query = new Query(queryString, Constants.OR);
+				query.setCorpusDir(corpusDir);
+				query.setQueryUtil(this);
+				
+				results = query.getResultSet(ScoringModel.TFIDF);
+				
+				//writer.println("numResults=" + results.size());
+				if(results.size() > 0) {
+					numOfResults++;
+					queryResult.append(StringPool.NEW_LINE + queryId + StringPool.COLON);
+					queryResult.append("{");
+					int j=0;
+					for(ResultDocument res: results) {
+						if(++j > 10)
+							break;
+						queryResult.append(res.getResultDocId());
+						queryResult.append(StringPool.HASH);
+						queryResult.append(String.format("%.5f", res.getRelavanceScore()));
+						queryResult.append(StringPool.COMMA);
+						queryResult.append(StringPool.SPACE);
+					}
+					queryResult.deleteCharAt(queryResult.length()-1);
+					queryResult.deleteCharAt(queryResult.length()-1);
+					queryResult.append("}");
+					//writer.println(queryResult.toString());
+				}
+			}
+			br.close();
+			if(numOfResults > 0) {
+				stream.println("numResults=" + numOfResults + queryResult.toString());
+			} else {
+				stream.println("numResults=0");
+			}
+			
+			br.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 

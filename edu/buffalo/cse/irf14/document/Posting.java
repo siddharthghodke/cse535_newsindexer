@@ -14,22 +14,45 @@ public class Posting implements Serializable {
 	private List<Integer> positions;
 	
 	/* term frequency and doc frequency for result posting */
-	private List<Integer> termFrequency;
-	private List<Integer> docFrequency;
+	private List<Integer> termFrequencyList;
+	private List<Integer> docFrequencyList;
 	private List<List<Integer>> positionList;
+	
+	private double tfIdfWeight;
+	private double relevancyScore;
+	
+	public Posting() {
+		
+	}
 	
 	public Posting(Posting p) {
 		this.docId = p.getDocId();
 		this.positions = p.getPositions();
-		termFrequency = new ArrayList<Integer>();
-		docFrequency = new ArrayList<Integer>();
-		positionList = new ArrayList<List<Integer>>();
+		this.relevancyScore = p.getRelevancyScore();
+		this.tfIdfWeight = p.getTfIdfWeight();
+		
+		//this(p.getDocId(), -1);
+		if(p.getDocFrequencyList() != null)
+			docFrequencyList = new ArrayList<Integer>(p.getDocFrequencyList());
+		else
+			docFrequencyList = new ArrayList<Integer>();
+		
+		if(p.getTermFrequencyList() != null)
+			termFrequencyList = new ArrayList<Integer>(p.getTermFrequencyList());
+		else
+			termFrequencyList = new ArrayList<Integer>();
+		
+		if(p.getPostionList() != null)
+			positionList = new ArrayList<List<Integer>>(p.getPostionList());
+		else
+			positionList = new ArrayList<List<Integer>>();
 	}
 	
 	public Posting(int docId, int position) {
 		positions = new ArrayList<Integer>();
 		positions.add(position);
 		this.docId = docId;
+		relevancyScore = tfIdfWeight = 0;
 	}
 	
 	public void add(int docId, int position) {
@@ -46,6 +69,10 @@ public class Posting implements Serializable {
 		return positions.size();
 	}
 
+	public void setDocId(int id) {
+		docId = id;
+	}
+	
 	public int getDocId() {
 		return docId;
 	}
@@ -55,27 +82,27 @@ public class Posting implements Serializable {
 	}
 
 	public void addTermFrequency(int tf) {
-		termFrequency.add(tf);
+		termFrequencyList.add(tf);
 	}
 	
 	public void addDocFrequency(int df) {
-		docFrequency.add(df);
+		docFrequencyList.add(df);
 	}
 	
 	public List<Integer> getTermFrequencyList() {
-		return termFrequency;
+		return termFrequencyList;
 	}
 	
 	public List<Integer> getDocFrequencyList() {
-		return docFrequency;
+		return docFrequencyList;
 	}
 	
 	public void setTermFrequencyList(List<Integer> tfList) {
-		termFrequency = tfList;
+		termFrequencyList = tfList;
 	}
 	
 	public void setDocFrequencyList(List<Integer> dfList) {
-		docFrequency = dfList;
+		docFrequencyList = dfList;
 	}
 	
 	public void addPositionList(List<Integer> posList) {
@@ -88,6 +115,67 @@ public class Posting implements Serializable {
 	
 	public void setPositionList(List<List<Integer>> posList) {
 		positionList = posList;
+	}
+	
+	public void appendTermFrequencyList(List<Integer> tfList, boolean append0) {
+		if(termFrequencyList == null || termFrequencyList.size() == 0) {
+			termFrequencyList = tfList;
+			return;
+		}
+		for(int tf: tfList) {
+			if(append0)
+				termFrequencyList.add(0);
+			else
+				termFrequencyList.add(tf);
+		}
+	}
+	
+	public void appendDocFrequencyList(List<Integer> dfList) {
+		if(docFrequencyList == null || docFrequencyList.size() == 0) {
+			docFrequencyList = dfList;
+			return;
+		}
+		for(int df: dfList) {
+			docFrequencyList.add(df);
+		}
+	}
+	
+	public void appendPositionList(List<List<Integer>> posList, boolean appendEmpty) {
+		if(positionList == null || positionList.size() == 0) {
+			positionList = posList;
+			return;
+		}
+		for(List<Integer> pos: posList) {
+			if(appendEmpty)
+				positionList.add(new ArrayList<Integer>());
+			else
+				positionList.add(pos);
+		}
+	}
+	
+	public void resetTermFrequencyList() {
+		if(termFrequencyList == null) {
+			return;
+		}
+		for(int i=0; i<termFrequencyList.size(); i++) {
+			termFrequencyList.set(i, 0);
+		}
+	}
+	
+	public double getTfIdfWeight() {
+		return tfIdfWeight;
+	}
+
+	public void setTfIdfWeight(double tfIdfWeight) {
+		this.tfIdfWeight = tfIdfWeight;
+	}
+	
+	public double getRelevancyScore() {
+		return relevancyScore;
+	}
+
+	public void setRelevancyScore(double relevancyScore) {
+		this.relevancyScore = relevancyScore;
 	}
 	
 }

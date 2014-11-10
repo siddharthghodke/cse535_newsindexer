@@ -39,7 +39,12 @@ public class TermIndex implements Index {
 		FileOutputStream fileOutStream;
 		ObjectOutputStream objectOutStream;
 		BufferedOutputStream bufferOutStream;
-		String fileName = rootIndexDir + File.separator + TYPE.toLowerCase() + File.separator + TYPE.toLowerCase();
+		
+		if(File.separator.charAt(0) != rootIndexDir.charAt(rootIndexDir.length() - 1)) {
+			rootIndexDir = rootIndexDir + File.separator;
+		}
+		
+		String fileName = rootIndexDir + TYPE.toLowerCase() + File.separator + TYPE.toLowerCase();
 		
 		// write the term index
 		fileOutStream = new FileOutputStream(fileName);
@@ -50,7 +55,7 @@ public class TermIndex implements Index {
 		fileOutStream.close();
 		
 		// write document dictionary
-		fileName = rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + Constants.DOCUMENT;
+		fileName = rootIndexDir + Constants.DICTIONARY + File.separator + Constants.DOCUMENT;
 		fileOutStream = new FileOutputStream(fileName);
 		bufferOutStream = new BufferedOutputStream(fileOutStream);
 		objectOutStream = new ObjectOutputStream(bufferOutStream);
@@ -59,7 +64,7 @@ public class TermIndex implements Index {
 		fileOutStream.close();
 		
 		// write reverse document dictionary
-		fileName = rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + Constants.DOCUMENT;
+		fileName = rootIndexDir + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + Constants.DOCUMENT;
 		fileOutStream = new FileOutputStream(fileName);
 		bufferOutStream = new BufferedOutputStream(fileOutStream);
 		objectOutStream = new ObjectOutputStream(bufferOutStream);
@@ -68,7 +73,7 @@ public class TermIndex implements Index {
 		fileOutStream.close();
 		
 		// write term dictionary
-		fileName = rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + TYPE.toLowerCase();
+		fileName = rootIndexDir + Constants.DICTIONARY + File.separator + TYPE.toLowerCase();
 		fileOutStream = new FileOutputStream(fileName);
 		bufferOutStream = new BufferedOutputStream(fileOutStream);
 		objectOutStream = new ObjectOutputStream(bufferOutStream);
@@ -77,11 +82,20 @@ public class TermIndex implements Index {
 		fileOutStream.close();
 		
 		// write term dictionary
-		fileName = rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + TYPE.toLowerCase();
+		fileName = rootIndexDir + Constants.DICTIONARY + File.separator + Constants.REVERSE + StringPool.UNDERSCORE + TYPE.toLowerCase();
 		fileOutStream = new FileOutputStream(fileName);
 		bufferOutStream = new BufferedOutputStream(fileOutStream);
 		objectOutStream = new ObjectOutputStream(bufferOutStream);
 		objectOutStream.writeObject(TermDictionary.getReverseDictionary());
+		objectOutStream.close();
+		fileOutStream.close();
+		
+		// write document length dictionary
+		fileName = rootIndexDir + Constants.DICTIONARY + File.separator + Constants.DOCUMENT_LENGTH_DICTIONARY;
+		fileOutStream = new FileOutputStream(fileName);
+		bufferOutStream = new BufferedOutputStream(fileOutStream);
+		objectOutStream = new ObjectOutputStream(bufferOutStream);
+		objectOutStream.writeObject(DocumentDictionary.getDocLengthMap());
 		objectOutStream.close();
 		fileOutStream.close();
 	}

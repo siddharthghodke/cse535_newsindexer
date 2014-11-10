@@ -4,7 +4,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
+import edu.buffalo.cse.irf14.dictionary.TermDictionary;
 import edu.buffalo.cse.irf14.util.Constants;
 import edu.buffalo.cse.irf14.util.StringPool;
 
@@ -22,6 +25,7 @@ public class QueryBuilder {
 		parsedQuery = new String(query);
 		
 		removePhrases();
+		expandWCTerms();
 		groupAndApplyTermIndex();
 		expandIndexScope();
 		includeDefaultOp();
@@ -356,10 +360,144 @@ public class QueryBuilder {
 		}
 	}
 	
+	private void expandWCTerms() {
+		if(!parsedQuery.contains(StringPool.STAR) && !parsedQuery.contains(StringPool.QUESTION_MARK)) {
+			return;
+		}
+		String[] tokens = parsedQuery.split(StringPool.SPACE);
+		StringBuilder expansionQuery, sb;
+		List<String> expansionTerms;
+		
+		expansionQuery = new StringBuilder();
+		for(String token: tokens) {
+			sb = new StringBuilder();
+			if(token.contains(StringPool.COLON)) {
+				String[] parts = token.split(StringPool.COLON);
+				sb.append(parts[0]);
+				sb.append(StringPool.COLON);
+				if(parts[1].contains(StringPool.STAR) || parts[1].contains(StringPool.QUESTION_MARK)) {
+					expansionTerms = getQueryTerms(parts[1]);
+					wcTermMap.put(parts[1], expansionTerms);
+					if(expansionTerms != null) {
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.OPEN_PARENTHESIS);
+						for(String expansionTerm: expansionTerms) {
+							sb.append(expansionTerm);
+							sb.append(StringPool.SPACE);
+						}
+						sb.deleteCharAt(sb.length() - 1);
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.CLOSE_PARENTHESIS);
+					} else {
+						sb.append("null");
+					}
+				} else {
+					sb.append(parts[1]);
+				}
+			}
+			else if(token.contains(StringPool.OPEN_PARENTHESIS)) {
+				sb.append(StringPool.OPEN_PARENTHESIS);
+				token.replaceAll(StringPool.OPEN_PARENTHESIS, StringPool.BLANK);
+				if(token.contains(StringPool.STAR) || token.contains(StringPool.QUESTION_MARK)) {
+					expansionTerms = getQueryTerms(token);
+					wcTermMap.put(token, expansionTerms);
+					if(expansionTerms != null) {
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.OPEN_PARENTHESIS);
+						for(String expansionTerm: expansionTerms) {
+							sb.append(expansionTerm);
+							sb.append(StringPool.SPACE);
+						}
+						sb.deleteCharAt(sb.length() - 1);
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.CLOSE_PARENTHESIS);
+					} else {
+						sb.append("null");
+					}
+				} else {
+					sb.append(token);
+				}
+			}
+			else if(token.contains(StringPool.CLOSE_PARENTHESIS)) {
+				token.replaceAll(StringPool.CLOSE_PARENTHESIS, StringPool.BLANK);
+				if(token.contains(StringPool.STAR) || token.contains(StringPool.QUESTION_MARK)) {
+					expansionTerms = getQueryTerms(token);
+					wcTermMap.put(token, expansionTerms);
+					if(expansionTerms != null) {
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.OPEN_PARENTHESIS);
+						for(String expansionTerm: expansionTerms) {
+							sb.append(expansionTerm);
+							sb.append(StringPool.SPACE);
+						}
+						sb.deleteCharAt(sb.length() - 1);
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.CLOSE_PARENTHESIS);
+					} else {
+						sb.append("null");
+					}
+				} else {
+					sb.append(token);
+				}
+				sb.append(StringPool.CLOSE_PARENTHESIS);
+			}
+			else {
+				if(token.contains(StringPool.STAR) || token.contains(StringPool.QUESTION_MARK)) {
+					expansionTerms = getQueryTerms(token);
+					wcTermMap.put(token, expansionTerms);
+					if(expansionTerms != null) {
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.OPEN_PARENTHESIS);
+						for(String expansionTerm: expansionTerms) {
+							sb.append(expansionTerm);
+							sb.append(StringPool.SPACE);
+						}
+						sb.deleteCharAt(sb.length() - 1);
+						if(expansionTerms.size() > 1)
+							sb.append(StringPool.CLOSE_PARENTHESIS);
+					} else {
+						sb.append("null");
+					}
+				} else {
+					sb.append(token);
+				}
+			}
+			expansionQuery.append(sb.toString() + StringPool.SPACE);
+		}
+		parsedQuery = expansionQuery.toString().trim();
+	}
+	
+	private List<String> getQueryTerms(String term) {
+		
+		String newTerm = term.replaceAll("\\*", ".*");
+		newTerm = newTerm.replaceAll("\\?", ".?");
+		
+		List<String> expansionTerms = new ArrayList<String>();
+		
+		//String[] termDictionary = new String[]{"mln", "mla", "mleaesa", "msqla"};
+		Set<String> termDictionary = TermDictionary.getDictionary().keySet();
+		
+		for(String dictTerm: termDictionary) {
+			if(Pattern.matches(newTerm, dictTerm)) {
+				expansionTerms.add(dictTerm);
+			}
+		}
+		
+		if(expansionTerms.size() > 0) {
+			return expansionTerms;
+		}
+		return null;
+	}
+	
+	public Map<String, List<String>> getWCExpandedTerms() {
+		return wcTermMap;
+	}
+	
 	private Map<Integer, String> termMap;
 	private StringBuilder inorderString;
 	private String query;
 	private String parsedQuery;
 	private String defOp;
+	private Map<String, List<String>> wcTermMap = new HashMap<String, List<String>>();
 	
 }

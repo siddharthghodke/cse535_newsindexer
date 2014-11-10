@@ -42,7 +42,10 @@ public class AuthorIndex implements Index{
 		FileOutputStream fileOutStream;
 		ObjectOutputStream objectOutStream;
 		BufferedOutputStream bufferOutStream;
-		String fileName = rootIndexDir + File.separator + TYPE.toLowerCase() + File.separator + TYPE.toLowerCase();
+		if(File.separator.charAt(0) != rootIndexDir.charAt(rootIndexDir.length() - 1)) {
+			rootIndexDir = rootIndexDir + File.separator;
+		}
+		String fileName = rootIndexDir + TYPE.toLowerCase() + File.separator + TYPE.toLowerCase();
 		
 		// write author index
 		fileOutStream = new FileOutputStream(fileName);
@@ -53,7 +56,7 @@ public class AuthorIndex implements Index{
 		fileOutStream.close();
 		
 		// write author dictionary
-		fileName = rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + TYPE.toLowerCase();
+		fileName = rootIndexDir + Constants.DICTIONARY + File.separator + TYPE.toLowerCase();
 		fileOutStream = new FileOutputStream(fileName);
 		bufferOutStream = new BufferedOutputStream(fileOutStream);
 		objectOutStream = new ObjectOutputStream(bufferOutStream);
@@ -61,8 +64,8 @@ public class AuthorIndex implements Index{
 		objectOutStream.close();
 		fileOutStream.close();
 		
-		// write author dictionary
-		fileName = rootIndexDir + File.separator + Constants.DICTIONARY + File.separator + Constants.REVERSE  + StringPool.UNDERSCORE + TYPE.toLowerCase();
+		// write reverse author dictionary
+		fileName = rootIndexDir + Constants.DICTIONARY + File.separator + Constants.REVERSE  + StringPool.UNDERSCORE + TYPE.toLowerCase();
 		fileOutStream = new FileOutputStream(fileName);
 		bufferOutStream = new BufferedOutputStream(fileOutStream);
 		objectOutStream = new ObjectOutputStream(bufferOutStream);

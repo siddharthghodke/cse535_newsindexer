@@ -6,11 +6,13 @@ import java.util.Map;
 public class DocumentDictionary {
 	private static Map<String, Integer> docDictionary;
 	private static Map<Integer, String> reverseDocDictionary;
+	private static Map<Integer, Integer> docLengthMap;
 	private static Integer docId;
 	
 	static {
 		docDictionary = new HashMap<String, Integer>();
 		reverseDocDictionary = new HashMap<Integer, String>();
+		docLengthMap = new HashMap<Integer, Integer>();
 		docId = -1;
 	}
 
@@ -46,5 +48,21 @@ public class DocumentDictionary {
 	
 	public static void setDictionary(Map<String, Integer> dictionary) {
 		docDictionary = dictionary;
+	}
+	
+	public static void addDocLength(int docId, int docLength) {
+		docLengthMap.put(docId, docLength);
+	}
+	
+	public static Integer getDocLength(int docId) {
+		return docLengthMap.get(docId);
+	}
+	
+	public static Map<Integer, Integer> getDocLengthMap() {
+		return docLengthMap;
+	}
+	
+	public static void setDocumentLengthMap(Map<Integer, Integer> documentLengthMap) {
+		docLengthMap = documentLengthMap;
 	}
 }

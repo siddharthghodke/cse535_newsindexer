@@ -9,6 +9,8 @@ public class Constants {
 	
 	public static final String DOCUMENT = "document";
 	
+	public static final String DOCUMENT_LENGTH_DICTIONARY = "document_length_dictionary";
+	
 	public static final String REVERSE = "reverse";
 	
 	public static final String STOPWORD = "STOPWORD";

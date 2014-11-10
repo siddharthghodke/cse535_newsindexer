@@ -20,10 +20,10 @@ public class TitleAnalyzer implements Analyzer {
 
 			filter = tff.getFilterByType(TokenFilterType.STOPWORD, filter.getStream());
 			while(filter.increment());
-	
+			/*
 			filter = tff.getFilterByType(TokenFilterType.STEMMER, filter.getStream());
 			while(filter.increment());
-				
+			*/	
 			filter = tff.getFilterByType(TokenFilterType.SPECIALCHARS, filter.getStream());
 			
 			ts = filter.getStream();

@@ -108,6 +108,8 @@ public class IndexWriter {
 			newsDate = newsDateArray[0];
 		}
 		
+		int docLength = 0;
+		
 		// flag to check if the current doc has already been processed and indexed
 		boolean isNewDoc = true;
 		fileId = d.getField(FieldNames.FILEID)[0];
@@ -155,6 +157,7 @@ public class IndexWriter {
 						token = ts.getCurrent();
 						if(token != null) {
 							termIndex.add(token.toString(), docId, token.getPos());
+							docLength++;
 							
 						}
 					}
@@ -209,6 +212,11 @@ public class IndexWriter {
 						}
 					}
 				}
+			}
+			
+			// update doc length
+			if(isNewDoc) {
+				DocumentDictionary.addDocLength(docId, docLength);
 			}
 
 			
